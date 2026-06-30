@@ -47,7 +47,7 @@ jobs:
       - name: Build with Wails
         run: |
           $env:Path += ";$env:USERPROFILE\go\bin"
-          wails build -production -trimpath -s -o FetchVid.exe
+          wails build -trimpath -o FetchVid.exe
 
       - name: Test executable
         run: |
