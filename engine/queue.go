@@ -57,7 +57,7 @@ func (q *Queue) Add(jobs []Job) {
 	}
 }
 
-func (q *Queue) Start(concurrent int, outputDir, cookies string) {
+func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath string) {
 	q.mu.Lock()
 	if q.running {
 		q.mu.Unlock()
@@ -110,12 +110,9 @@ func (q *Queue) Start(concurrent int, outputDir, cookies string) {
 				q.mu.Unlock()
 
 				yt := &Ytdlp{
+					Path:      ytdlpPath,
 					Cookies:   cookies,
 					OutputDir: outputDir,
-				}
-				yt.Path = findInPath()
-				if yt.Path == "" {
-					yt.Path = findInAppData()
 				}
 
 				err := yt.DownloadVideo(job.URL, job.Index, q.Progress.Total, nil)

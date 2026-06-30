@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -110,6 +111,7 @@ func (y *Ytdlp) EnsureDownloaded() error {
 
 func (y *Ytdlp) Version() (string, error) {
 	cmd := exec.Command(y.Path, "--version")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -130,6 +132,7 @@ func (y *Ytdlp) ExtractPlaylist(url string) ([]VideoEntry, error) {
 	args = append(args, url)
 
 	cmd := exec.Command(y.Path, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	out, err := cmd.Output()
 	if err != nil {
 		// Try to parse stderr for useful info
@@ -219,6 +222,7 @@ func (y *Ytdlp) DownloadVideo(url string, jobID, total int, progressCh chan<- Do
 	args = append(args, url)
 
 	cmd := exec.Command(y.Path, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

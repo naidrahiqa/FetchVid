@@ -1,14 +1,14 @@
-# FetchVid .gitignore
-
 # Build output
 /build/
-/FetchVid.exe
 *.exe
 
-# Frontend
+# Frontend dependencies (keep dist/)
 frontend/node_modules/
-frontend/dist/style.css
 frontend/package-lock.json
+frontend/dist/style.css
+
+# Wails generated
+frontend/wailsjs/
 
 # IDE
 .idea/
@@ -28,5 +28,5 @@ vendor/
 # Logs
 *.log
 
-# Wails generated
-frontend/wailsjs/
+# Wails config (keep for reference)
+# wails.json

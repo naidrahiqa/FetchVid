@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/naidrahiqa/FetchVid/engine"
@@ -88,13 +90,9 @@ func (a *App) ExtractURLs(rawurl string) Response {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	// Ensure yt-dlp is available
-	if a.ytdlp == nil {
-		yt, err := engine.NewYtdlp()
-		if err != nil {
-			return Response{Success: false, Message: "yt-dlp belum tersedia, coba download dulu"}
-		}
-		a.ytdlp = yt
+	// Check if input contains multiple URLs (multiline or space-separated)
+	if strings.ContainsAny(rawurl, "\n\r ") {
+		return a.ParseURLs(rawurl)
 	}
 
 	p := platform.Detect(rawurl)
@@ -105,14 +103,6 @@ func (a *App) ExtractURLs(rawurl string) Response {
 	var entries []platform.VideoInfo
 	var err error
 
-	// Try to resolve share URL via yt-dlp first
-	if p.Name() == "facebook" {
-		resolved := a.resolveViaYtdlp(rawurl)
-		if resolved != "" {
-			rawurl = resolved
-		}
-	}
-
 	entries, err = p.ExtractURLs(rawurl, a.settings.CookiesFile)
 	if err != nil {
 		return Response{Success: false, Message: err.Error()}
@@ -122,13 +112,62 @@ func (a *App) ExtractURLs(rawurl string) Response {
 		return Response{Success: false, Message: "Tidak ada video ditemukan. Coba paste manual via 'Paste URLs'"}
 	}
 
-	// Convert to VideoInfo
 	info := make([]VideoInfo, len(entries))
 	for i, e := range entries {
 		info[i] = VideoInfo{URL: e.URL, Title: e.Title, Source: e.Source}
 	}
 
 	return Response{Success: true, Message: "OK", Data: info}
+}
+
+// ParseURLs parses raw text (multiline/space-separated) into video entries
+func (a *App) ParseURLs(rawtext string) Response {
+	lines := strings.Fields(rawtext)
+	var entries []VideoInfo
+	seen := make(map[string]bool)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Normalize URL
+		if !strings.HasPrefix(line, "http") {
+			line = "https://" + line
+		}
+
+		// Skip if already seen
+		if seen[line] {
+			continue
+		}
+		seen[line] = true
+
+		// Detect platform
+		p := platform.Detect(line)
+		source := "unknown"
+		if p != nil {
+			source = p.Name()
+		} else if strings.Contains(line, "facebook.com") || strings.Contains(line, "fb.com") || strings.Contains(line, "fb.watch") {
+			source = "facebook"
+		} else if strings.Contains(line, "instagram.com") || strings.Contains(line, "instagr.am") {
+			source = "instagram"
+		} else if strings.Contains(line, "tiktok.com") || strings.Contains(line, "vm.tiktok") {
+			source = "tiktok"
+		} else {
+			continue // skip non-video URLs
+		}
+
+		// Extract title from URL
+		title := extractTitleFromURL(line)
+		entries = append(entries, VideoInfo{URL: line, Title: title, Source: source})
+	}
+
+	if len(entries) == 0 {
+		return Response{Success: false, Message: "Tidak ada URL video ditemukan"}
+	}
+
+	return Response{Success: true, Message: fmt.Sprintf("OK %d video", len(entries)), Data: entries}
 }
 
 func (a *App) QueueDownload(videos []VideoInfo) Response {
@@ -149,9 +188,15 @@ func (a *App) StartDownload(concurrent int) Response {
 	if a.ytdlp == nil {
 		yt, err := engine.NewYtdlp()
 		if err != nil {
-			return Response{Success: false, Message: "yt-dlp tidak ditemukan. Klik 'Download yt-dlp' dulu"}
+			// Auto-download yt-dlp
+			yt = &engine.Ytdlp{}
+			if dlErr := yt.EnsureDownloaded(); dlErr != nil {
+				return Response{Success: false, Message: "Gagal download yt-dlp: " + dlErr.Error()}
+			}
+			a.ytdlp = yt
+		} else {
+			a.ytdlp = yt
 		}
-		a.ytdlp = yt
 	}
 
 	outDir := a.settings.OutputDir
@@ -160,7 +205,7 @@ func (a *App) StartDownload(concurrent int) Response {
 	}
 	os.MkdirAll(outDir, 0755)
 
-	go a.queue.Start(concurrent, outDir, a.settings.CookiesFile)
+	go a.queue.Start(concurrent, outDir, a.settings.CookiesFile, a.ytdlp.Path)
 	return Response{Success: true, Message: "Download dimulai"}
 }
 
@@ -244,6 +289,24 @@ func (a *App) SaveSettingsData(data string) Response {
 	a.settings = &s
 	SaveSettings(a.settings)
 	return Response{Success: true, Message: "Disimpan"}
+}
+
+// extractTitleFromURL gets a title from a direct reel/video URL
+func extractTitleFromURL(rawurl string) string {
+	parts := strings.Split(rawurl, "/")
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] != "" {
+			id := parts[i]
+			if strings.Contains(rawurl, "/reel/") {
+				return "Reel " + id
+			}
+			if strings.Contains(rawurl, "/video/") {
+				return "Video " + id
+			}
+			return id
+		}
+	}
+	return "Video"
 }
 
 // resolveViaYtdlp uses yt-dlp to resolve Facebook share URLs
