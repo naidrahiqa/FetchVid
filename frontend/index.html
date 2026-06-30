@@ -1,187 +1,225 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FetchVid</title>
-  <link rel="stylesheet" href="dist/style.css">
-  <style>
-    :root {
-      --bg-primary: #0f0f13;
-      --bg-secondary: #1a1a23;
-      --bg-tertiary: #252533;
-      --text-primary: #e8e8ed;
-      --text-secondary: #8b8ba0;
-      --accent: #6c5ce7;
-      --accent-hover: #7f6ff0;
-      --success: #00b894;
-      --error: #d63031;
-      --warning: #fdcb6e;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      overflow: hidden;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-primary); }
-    ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
-    #app { display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; }
-    .top-bar { display: flex; gap: 8px; align-items: center; }
-    .top-bar h1 { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; }
-    .top-bar input {
-      flex: 1; padding: 6px 12px; border-radius: 8px;
-      background: var(--bg-secondary); border: 1px solid var(--bg-tertiary);
-      color: var(--text-primary); font-size: 13px; outline: none;
-    }
-    .top-bar input:focus { border-color: var(--accent); }
-    .icon-btn {
-      padding: 6px 10px; border-radius: 8px; border: none;
-      background: var(--bg-secondary); color: var(--text-primary);
-      font-size: 16px; cursor: pointer; transition: background 0.15s;
-    }
-    .icon-btn:hover { background: var(--bg-tertiary); }
-    .tabs { display: flex; gap: 4px; align-items: center; }
-    .tab {
-      padding: 5px 16px; border-radius: 8px; border: none;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      background: var(--bg-secondary); color: var(--text-secondary);
-      transition: all 0.15s;
-    }
-    .tab:hover { background: var(--bg-tertiary); }
-    .tab.active { background: var(--accent); color: #fff; }
-    .btn {
-      padding: 5px 16px; border-radius: 8px; border: none;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-secondary { background: var(--bg-secondary); color: var(--text-secondary); }
-    .btn-secondary:hover { background: var(--bg-tertiary); }
-    .btn-link {
-      background: none; border: none; padding: 0;
-      font-size: 12px; cursor: pointer; color: var(--accent);
-    }
-    .btn-link:hover { text-decoration: underline; }
-    .btn-link.danger { color: var(--error); }
-    .btn-link.muted { color: var(--text-secondary); }
-    .video-panel {
-      flex: 1; display: flex; flex-direction: column; border-radius: 12px;
-      background: var(--bg-secondary); padding: 10px; gap: 8px;
-      min-height: 0; overflow: hidden;
-    }
-    .video-header { display: flex; justify-content: space-between; align-items: center; }
-    .video-header span { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-    .video-header .actions { display: flex; gap: 10px; }
-    #videoList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
-    .video-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 8px; border-radius: 6px; cursor: pointer;
-      transition: background 0.1s;
-    }
-    .video-item:hover { background: var(--bg-tertiary); }
-    .video-item input[type="checkbox"] { accent-color: var(--accent); }
-    .video-item .title { font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .badge {
-      font-size: 10px; padding: 1px 6px; border-radius: 4px;
-      font-weight: 600; white-space: nowrap;
-    }
-    .download-bar { display: flex; align-items: center; gap: 10px; }
-    .download-bar label { font-size: 12px; color: var(--text-secondary); }
-    .download-bar input {
-      width: 48px; padding: 4px 6px; border-radius: 6px;
-      background: var(--bg-secondary); border: 1px solid var(--bg-tertiary);
-      color: var(--text-primary); font-size: 12px; text-align: center; outline: none;
-    }
-    #btnDownload {
-      margin-left: auto; padding: 8px 24px; border-radius: 8px; border: none;
-      background: var(--accent); color: #fff; font-size: 13px;
-      font-weight: 700; cursor: pointer; transition: all 0.15s;
-    }
-    #btnDownload:hover { background: var(--accent-hover); }
-    #btnDownload:disabled { opacity: 0.4; cursor: not-allowed; }
-    #progressContainer { display: none; }
-    #progressContainer.show { display: block; }
-    .progress-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .progress-header span { font-size: 12px; color: var(--text-secondary); }
-    .progress-track {
-      height: 8px; border-radius: 4px; background: var(--bg-tertiary); overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%; border-radius: 4px; background: var(--accent);
-      transition: width 0.3s ease; width: 0%;
-    }
-    #log {
-      height: 120px; border-radius: 12px; background: var(--bg-secondary);
-      overflow-y: auto; font-size: 11px; font-family: 'Cascadia Code', 'Fira Code', monospace;
-      padding: 8px; display: flex; flex-direction: column; gap: 1px;
-    }
-    #log .log-line { color: var(--text-secondary); line-height: 1.5; }
-    #log .log-line.success { color: var(--success); }
-    #log .log-line.error { color: var(--error); }
-    #log .log-line.warning { color: var(--warning); }
-    #log .log-line.info { color: var(--accent); }
-    .empty-state {
-      text-align: center; color: var(--text-secondary);
-      font-size: 12px; padding: 32px 0;
-    }
-  </style>
-  <script src="src/main.js" type="module"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FetchVid</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--fg:#e6edf3;--fg2:#8b949e;--ac:#7c3aed;--ac2:#8b5cf6;--ok:#3fb950;--err:#f85149;--warn:#d29922}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+
+.row{display:flex;gap:8px;align-items:center;padding:8px 12px}
+.row input[type=text]{flex:1;padding:7px 12px;border-radius:6px;border:1px solid var(--bg3);background:var(--bg2);color:var(--fg);font-size:13px;outline:none}
+.row input[type=text]:focus{border-color:var(--ac)}
+.ibtn{padding:7px 10px;border-radius:6px;border:none;background:var(--bg2);color:var(--fg);font-size:15px;cursor:pointer}
+.ibtn:hover{background:var(--bg3)}
+
+.tabs{display:flex;gap:4px;padding:0 12px 8px;align-items:center}
+.tab{padding:6px 18px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg2);color:var(--fg2);transition:.15s}
+.tab:hover{background:var(--bg3)}.tab.on{background:var(--ac);color:#fff}
+.btn{padding:6px 18px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-p{background:var(--ac);color:#fff}.btn-p:hover{background:var(--ac2)}.btn-p:disabled{opacity:.4;cursor:not-allowed}
+.btn-s{background:var(--bg2);color:var(--fg2)}.btn-s:hover{background:var(--bg3)}
+.btn-l{background:none;border:none;font-size:12px;cursor:pointer;color:var(--ac);padding:0}.btn-l:hover{text-decoration:underline}
+.btn-d{color:var(--err)}.btn-m{color:var(--fg2)}
+
+.panel{flex:1;display:flex;flex-direction:column;margin:0 12px;border-radius:8px;background:var(--bg2);overflow:hidden;min-height:0}
+.panel-h{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bg3)}
+.panel-h span{font-size:12px;color:var(--fg2)}.panel-h .acts{display:flex;gap:10px}
+#vlist{flex:1;overflow-y:auto;padding:4px 0}
+.vid{display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px;cursor:pointer;transition:.1s}
+.vid:hover{background:var(--bg3)}.vid input{accent-color:var(--ac)}
+.vid .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600;white-space:nowrap}
+.empty{text-align:center;color:var(--fg2);font-size:12px;padding:40px 0}
+
+.dlbar{display:flex;align-items:center;gap:10px;padding:8px 12px}
+.dlbar label{font-size:12px;color:var(--fg2)}
+.dlbar input[type=number]{width:48px;padding:4px;border-radius:4px;background:var(--bg2);border:1px solid var(--bg3);color:var(--fg);font-size:12px;text-align:center;outline:none}
+#btnDL{margin-left:auto;padding:8px 28px;border-radius:6px;border:none;background:var(--ac);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+#btnDL:hover{background:var(--ac2)}#btnDL:disabled{opacity:.4;cursor:not-allowed}
+
+#progWrap{display:none;padding:0 12px 4px}#progWrap.show{display:block}
+.prog-h{display:flex;justify-content:space-between;margin-bottom:3px}.prog-h span{font-size:11px;color:var(--fg2)}
+.prog-t{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.prog-f{height:100%;border-radius:3px;background:var(--ac);transition:width .3s;width:0%}
+
+#logBox{height:110px;background:var(--bg2);overflow-y:auto;font-size:11px;font-family:'Cascadia Code','Fira Code',monospace;padding:6px 12px;margin:0 12px 8px;border-radius:8px;display:flex;flex-direction:column;gap:0}
+.ll{color:var(--fg2);line-height:1.6}.ll.ok{color:var(--ok)}.ll.er{color:var(--err)}.ll.wn{color:var(--warn)}.ll.in{color:var(--ac)}
+</style>
 </head>
 <body>
-  <div id="app">
-    <div class="top-bar">
-      <h1>FetchVid</h1>
-      <input id="urlInput" type="text" placeholder="Paste URL profile / share link..." />
-      <button id="btnFolder" class="icon-btn" title="Pilih folder">📂</button>
-      <button id="btnCookies" class="icon-btn" title="Pilih cookies file">🍪</button>
-    </div>
-    <div class="tabs">
-      <button class="tab active" data-platform="facebook">FB</button>
-      <button class="tab" data-platform="instagram">IG</button>
-      <button class="tab" data-platform="tiktok">TT</button>
-      <button id="btnExtract" class="btn btn-primary" style="margin-left:auto">Ambil Daftar Video</button>
-      <button id="btnScripts" class="btn btn-secondary">Scripts</button>
-    </div>
-    <div class="video-panel">
-      <div class="video-header">
-        <span>Daftar Video: <strong id="count">0</strong></span>
-        <div class="actions">
-          <button id="btnSelectAll" class="btn-link">Select All</button>
-          <button id="btnDeselect" class="btn-link muted">Deselect</button>
-          <button id="btnPaste" class="btn-link">Paste URLs</button>
-          <button id="btnClear" class="btn-link danger">Clear</button>
-        </div>
-      </div>
-      <div id="videoList">
-        <div class="empty-state">Belum ada video. Paste URL atau klik "Ambil Daftar Video"</div>
-      </div>
-    </div>
-    <div class="download-bar">
-      <label>Download bareng:</label>
-      <input id="concurrent" type="number" value="3" min="1" max="10" />
-      <label>reel sekaligus</label>
-      <button id="btnDownload" disabled>DOWNLOAD VIDEO</button>
-    </div>
-    <div id="progressContainer">
-      <div class="progress-header">
-        <span id="progressText">0 / 0</span>
-        <span id="progressPercent">0%</span>
-      </div>
-      <div class="progress-track">
-        <div id="progressBar" class="progress-fill"></div>
-      </div>
-    </div>
-    <div id="log">
-      <div class="log-line">FetchVid siap. Masukkan URL profile untuk memulai.</div>
+
+<div class="row" style="padding-bottom:0">
+  <h1 style="font-size:16px;font-weight:700;color:var(--ac);white-space:nowrap">FetchVid</h1>
+  <input id="urlInput" type="text" placeholder="Paste URL profile / share link / reel URL...">
+  <button id="btnFolder" class="ibtn" title="Folder penyimpanan">📂</button>
+  <button id="btnCookies" class="ibtn" title="Cookies file">🍪</button>
+</div>
+
+<div class="tabs">
+  <button class="tab on" data-p="facebook">FB</button>
+  <button class="tab" data-p="instagram">IG</button>
+  <button class="tab" data-p="tiktok">TT</button>
+  <button id="btnExtract" class="btn btn-p" style="margin-left:auto">Ambil Daftar Video</button>
+  <button id="btnScripts" class="btn btn-s">Scripts</button>
+</div>
+
+<div class="panel">
+  <div class="panel-h">
+    <span>Daftar Video: <strong id="cnt">0</strong></span>
+    <div class="acts">
+      <button id="btnAll" class="btn-l">Select All</button>
+      <button id="btnNone" class="btn-l btn-m">Deselect</button>
+      <button id="btnPaste" class="btn-l">Paste URLs</button>
+      <button id="btnClr" class="btn-l btn-d">Clear</button>
     </div>
   </div>
+  <div id="vlist"><div class="empty">Belum ada video. Paste URL atau klik "Ambil Daftar Video"</div></div>
+</div>
+
+<div class="dlbar">
+  <label>Download bareng:</label>
+  <input id="conc" type="number" value="3" min="1" max="10">
+  <label>reel sekaligus</label>
+  <button id="btnDL" disabled>DOWNLOAD VIDEO</button>
+</div>
+
+<div id="progWrap">
+  <div class="prog-h"><span id="pTxt">0 / 0</span><span id="pPct">0%</span></div>
+  <div class="prog-t"><div id="pBar" class="prog-f"></div></div>
+</div>
+
+<div id="logBox"><div class="ll">FetchVid siap. Masukkan URL profile untuk memulai.</div></div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var urlI=$('#urlInput'),vlist=$('#vlist'),cnt=$('#cnt'),conc=$('#conc'),
+    btnDL=$('#btnDL'),btnEx=$('#btnExtract'),btnSc=$('#btnScripts'),
+    btnP=$('#btnPaste'),btnC=$('#btnClr'),btnA=$('#btnAll'),btnN=$('#btnNone'),
+    btnF=$('#btnFolder'),btnK=$('#btnCookies'),
+    tabs=document.querySelectorAll('.tab'),
+    logB=$('#logBox'),pW=$('#progWrap'),pB=$('#pBar'),pT=$('#pTxt'),pP=$('#pPct');
+
+var vids=[],running=false;
+
+function L(m,t){var d=document.createElement('div');d.className='ll'+(t?' '+t:'');d.textContent=m;logB.appendChild(d);logB.scrollTop=99999}
+function go(fn,arg){return window['go']['app']['App'][fn](arg)}
+function evOn(e,cb){window.runtime.EventsOn(e,cb)}
+
+tabs.forEach(function(t){t.onclick=function(){tabs.forEach(function(x){x.classList.remove('on')});t.classList.add('on')}});
+
+function render(arr){
+  vids=arr;vlist.innerHTML='';cnt.textContent=arr.length;
+  if(!arr.length){vlist.innerHTML='<div class="empty">Belum ada video.</div>';btnDL.disabled=true;return}
+  arr.forEach(function(v,i){
+    var d=document.createElement('div');d.className='vid';d.dataset.i=i;
+    var cb=document.createElement('input');cb.type='checkbox';cb.checked=true;
+    var lb=document.createElement('span');lb.className='t';lb.textContent=(v.Title||v.title||v.URL||v.url||'').slice(0,80);
+    var bg=document.createElement('span');bg.className='badge';
+    var src=v.Source||v.source||'';
+    var C={facebook:'#1877f2',instagram:'#e4405f',tiktok:'#00f2ea'};
+    bg.style.background=(C[src]||'#555')+'33';bg.style.color=C[src]||'#aaa';
+    bg.textContent=(src||'?').slice(0,2).toUpperCase();
+    d.appendChild(cb);d.appendChild(lb);d.appendChild(bg);vlist.appendChild(d);
+  });
+  btnDL.disabled=false;
+}
+
+function sel(){
+  var s=[];
+  vlist.querySelectorAll('.vid').forEach(function(d){
+    var cb=d.querySelector('input');
+    if(cb&&cb.checked)s.push(vids[parseInt(d.dataset.i)]);
+  });
+  return s;
+}
+
+btnA.onclick=function(){vlist.querySelectorAll('input').forEach(function(c){c.checked=true})};
+btnN.onclick=function(){vlist.querySelectorAll('input').forEach(function(c){c.checked=false})};
+btnC.onclick=function(){render([]);L('List dibersihkan','wn')};
+
+btnP.onclick=function(){
+  var t=prompt('Paste URL video (1 per baris):');
+  if(!t)return;
+  var lines=t.split('\n').map(function(s){return s.trim()}).filter(function(s){return s&&!s.startsWith('#')});
+  var arr=[];
+  lines.forEach(function(u){
+    var src=detect(u);
+    if(src!=='unknown')arr.push({URL:u,Title:u.split('/').pop()||u.slice(0,50),Source:src});
+  });
+  if(arr.length){render(vids.concat(arr));L('Ditambahkan '+arr.length+' URL','ok')}
+};
+
+function detect(u){
+  if(/facebook\.com|fb\.com|fb\.watch/i.test(u))return'facebook';
+  if(/instagram\.com|instagr\.am/i.test(u))return'instagram';
+  if(/tiktok\.com|vm\.tiktok/i.test(u))return'tiktok';
+  return'unknown';
+}
+
+btnSc.onclick=function(){
+  go('GetScripts').then(function(s){
+    var m='SCRIPT CONSOLE - Copy & paste di browser (F12 > Console):\n\n';
+    if(s&&s.length)s.forEach(function(x){m+='['+x.label+']\n'+x.desc+'\n'+x.script+'\n\n'});
+    else m+='Tidak ada script.';
+    prompt(m);
+  }).catch(function(e){L('Error: '+e,'er')});
+};
+
+btnEx.onclick=function(){
+  var url=urlI.value.trim();
+  if(!url){L('Masukkan URL profile!','er');return}
+  L('Analisa: '+url,'in');
+  btnEx.disabled=true;btnEx.textContent='Loading...';
+  go('ExtractURLs',url).then(function(r){
+    if(!r.success){L(r.message,'er');return}
+    var d=r.data||[];
+    if(!d.length){L(r.message||'Tidak ada video','wn');return}
+    render(d);L('Ditemukan '+d.length+' video','ok');
+  }).catch(function(e){L('Error: '+e,'er')})
+  .finally(function(){btnEx.disabled=false;btnEx.textContent='Ambil Daftar Video'});
+};
+
+btnDL.onclick=function(){
+  if(running)return;
+  var s=sel();
+  if(!s.length){L('Pilih video!','wn');return}
+  running=true;btnDL.textContent='DOWNLOADING...';btnDL.disabled=true;
+  pW.classList.add('show');
+  go('QueueDownload',s).then(function(r){
+    if(!r.success){L('Gagal: '+r.message,'er');resetDl();return}
+    L('Mulai download '+s.length+' video (bareng '+conc.value+')...','in');
+    return go('StartDownload',parseInt(conc.value)||3);
+  }).then(function(r){
+    if(r&&!r.success){L('Gagal: '+r.message,'er');resetDl()}
+  }).catch(function(e){L('Error: '+e,'er');resetDl()});
+};
+
+function resetDl(){running=false;btnDL.textContent='DOWNLOAD VIDEO';btnDL.disabled=false}
+
+evOn('download-progress',function(p){
+  pB.style.width=(p.Percent||0)+'%';
+  pT.textContent=(p.Completed||0)+' / '+(p.Total||0);
+  pP.textContent=Math.round(p.Percent||0)+'%';
+});
+evOn('download-job-done',function(j){
+  if(j.Error)L('['+j.Index+'] GAGAL: '+(j.Title||'')+' - '+j.Error,'er');
+  else L('['+j.Index+'] SELESAI: '+(j.Title||''),'ok');
+});
+evOn('download-complete',function(p){
+  L('Selesai! '+(p.Success||0)+' berhasil, '+(p.Failed||0)+' gagal','ok');
+  resetDl();pW.classList.remove('show');
+});
+
+btnF.onclick=function(){go('SelectFolder').then(function(d){if(d)L('Folder: '+d,'in')}).catch(function(e){L('Error: '+e,'er')})};
+btnK.onclick=function(){go('SelectCookiesFile').then(function(f){if(f)L('Cookies: '+f,'in')}).catch(function(e){L('Error: '+e,'er')})};
+
+L('FetchVid siap. Masukkan URL profile untuk memulai.');
+})();
+</script>
 </body>
 </html>

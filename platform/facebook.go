@@ -23,20 +23,34 @@ func (f *Facebook) Match(rawurl string) bool {
 }
 
 func (f *Facebook) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error) {
+	// Check if this is a direct reel/video URL - return it directly
+	if isDirectReelOrVideo(rawurl) {
+		title := extractTitleFromURL(rawurl)
+		return []VideoInfo{{URL: rawurl, Title: title, Source: "facebook"}}, nil
+	}
+
 	// Step 1: Resolve share URLs
 	resolved := resolveShareURL(rawurl, cookies)
 	if resolved != rawurl {
 		rawurl = resolved
 	}
 
+	// Re-check after resolve
+	if isDirectReelOrVideo(rawurl) {
+		title := extractTitleFromURL(rawurl)
+		return []VideoInfo{{URL: rawurl, Title: title, Source: "facebook"}}, nil
+	}
+
 	// Step 2: Extract user ID
 	uid := extractFacebookID(rawurl)
-	if uid == "" {
+	username := extractFacebookUsername(rawurl)
+
+	if uid == "" && username == "" {
 		return nil, fmt.Errorf("tidak bisa extract user ID dari URL: %s", rawurl)
 	}
 
 	// Step 3: Scrape profile page for reel/video links
-	entries, err := scrapeFacebookProfile(uid, cookies)
+	entries, err := scrapeFacebookProfile(uid, username, cookies)
 	if err != nil {
 		return nil, fmt.Errorf("gagal scrape: %w", err)
 	}
@@ -65,6 +79,46 @@ func (f *Facebook) ConsoleScripts() []ScriptInfo {
 			Desc:     "Ambil semua link video (reel + video + watch)",
 		},
 	}
+}
+
+// isDirectReelOrVideo checks if URL is a direct reel/video link
+func isDirectReelOrVideo(rawurl string) bool {
+	lower := strings.ToLower(rawurl)
+	return strings.Contains(lower, "/reel/") || strings.Contains(lower, "/video/") ||
+		strings.Contains(lower, "/watch/") || strings.Contains(lower, "/watch?v=")
+}
+
+// extractTitleFromURL gets a title from a direct reel/video URL
+func extractTitleFromURL(rawurl string) string {
+	parts := strings.Split(rawurl, "/")
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] != "" {
+			id := parts[i]
+			if strings.Contains(rawurl, "/reel/") {
+				return "Reel " + id
+			}
+			return "Video " + id
+		}
+	}
+	return "Video"
+}
+
+// extractFacebookUsername extracts username from URL like /username or /username/reels
+func extractFacebookUsername(rawurl string) string {
+	parsed, err := url.Parse(rawurl)
+	if err != nil {
+		return ""
+	}
+	path := strings.Trim(parsed.Path, "/")
+	if path == "" || strings.Contains(path, "profile.php") || strings.Contains(path, "/pages/") {
+		return ""
+	}
+	parts := strings.Split(path, "/")
+	username := parts[0]
+	if username == "" || strings.Contains(username, ".") {
+		return ""
+	}
+	return username
 }
 
 // resolveShareURL follows redirects from share URLs
@@ -145,17 +199,27 @@ func extractFacebookID(rawurl string) string {
 }
 
 // scrapeFacebookProfile fetches profile page and extracts reel/video URLs
-func scrapeFacebookProfile(uid string, cookies string) ([]VideoInfo, error) {
+func scrapeFacebookProfile(uid string, username string, cookies string) ([]VideoInfo, error) {
 	headers := map[string]string{
 		"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
 		"Accept-Language": "en-US,en;q=0.9",
 	}
 
-	urlsToTry := []string{
-		fmt.Sprintf("https://www.facebook.com/profile.php?id=%s&sk=reels_tab", uid),
-		fmt.Sprintf("https://www.facebook.com/profile.php?id=%s&sk=videos_tab", uid),
-		fmt.Sprintf("https://www.facebook.com/profile.php?id=%s&sk=videos", uid),
-		fmt.Sprintf("https://www.facebook.com/profile.php?id=%s", uid),
+	var urlsToTry []string
+	if uid != "" {
+		urlsToTry = append(urlsToTry,
+			fmt.Sprintf("https://www.facebook.com/profile.php?id=%s&sk=reels_tab", uid),
+			fmt.Sprintf("https://www.facebook.com/profile.php?id=%s&sk=videos_tab", uid),
+			fmt.Sprintf("https://www.facebook.com/profile.php?id=%s&sk=videos", uid),
+			fmt.Sprintf("https://www.facebook.com/profile.php?id=%s", uid),
+		)
+	}
+	if username != "" {
+		urlsToTry = append(urlsToTry,
+			fmt.Sprintf("https://www.facebook.com/%s/reels", username),
+			fmt.Sprintf("https://www.facebook.com/%s/videos", username),
+			fmt.Sprintf("https://www.facebook.com/%s", username),
+		)
 	}
 
 	var allEntries []VideoInfo
