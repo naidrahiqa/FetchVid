@@ -1,0 +1,100 @@
+{
+  "team_name": "FetchVid Team",
+  "team_size": 5,
+  "project_name": "FetchVid",
+  "project_repo": "D:\\Dev\\Project-Coding\\2026\\7Juli\\FetchVid",
+  "team_roles": [
+    {
+      "role": "Project Architect",
+      "member": "architect",
+      "skills": ["system-design", "tech-stack", "module-boundaries"],
+      "responsibility": "Arsitektur project secara keseluruhan, keputusan teknologi, code review"
+    },
+    {
+      "role": "Backend Engineer",
+      "member": "backend-engineer",
+      "skills": ["go", "wails", "yt-dlp", "concurrency"],
+      "responsibility": "Wails app, download engine goroutines, API endpoints ke frontend"
+    },
+    {
+      "role": "UI/UX Designer",
+      "member": "ui-designer",
+      "skills": ["html", "css", "js", "tailwind", "ux"],
+      "responsibility": "Frontend UI pake HTML/CSS/JS, dark theme, UX flow"
+    },
+    {
+      "role": "Platform Scraper",
+      "member": "platform-scraper",
+      "skills": ["facebook", "instagram", "tiktok", "scraping"],
+      "responsibility": "Extract reel/video URLs dari tiap platform"
+    },
+    {
+      "role": "Release Engineer",
+      "member": "release-engineer",
+      "skills": ["build", "packaging", "ci/cd"],
+      "responsibility": "Bundle app pake Wails, distribusi, auto-update yt-dlp"
+    }
+  ],
+  "available_skills": [
+    {
+      "id": "architect",
+      "file": ".opencode/skills/architect/SKILL.md",
+      "description": "Arsitektur project & code review"
+    },
+    {
+      "id": "backend-engineer",
+      "file": ".opencode/skills/backend-engineer/SKILL.md",
+      "description": "Go backend, Wails API, download engine"
+    },
+    {
+      "id": "ui-designer",
+      "file": ".opencode/skills/ui-designer/SKILL.md",
+      "description": "Frontend UI, HTML/CSS/JS/tailwind"
+    },
+    {
+      "id": "platform-scraper",
+      "file": ".opencode/skills/platform-scraper/SKILL.md",
+      "description": "Scraper FB, IG, TikTok"
+    },
+    {
+      "id": "release-engineer",
+      "file": ".opencode/skills/release-engineer/SKILL.md",
+      "description": "Build, bundle, release"
+    }
+  ],
+  "workflows": [
+    {
+      "name": "new-feature",
+      "trigger": "feature-request",
+      "steps": [
+        {"skill": "architect", "action": "design-review", "halts_on_fail": true},
+        {"skill": "backend-engineer", "action": "implement-api", "parallel": ["ui-designer", "platform-scraper"]},
+        {"skill": "release-engineer", "action": "build-test", "halts_on_fail": true}
+      ]
+    },
+    {
+      "name": "add-platform",
+      "trigger": "platform-request",
+      "steps": [
+        {"skill": "architect", "action": "design-interface"},
+        {"skill": "platform-scraper", "action": "implement-scraper"},
+        {"skill": "backend-engineer", "action": "register-platform"},
+        {"skill": "ui-designer", "action": "add-ui-tab"}
+      ]
+    },
+    {
+      "name": "release-build",
+      "trigger": "tag-created",
+      "steps": [
+        {"skill": "release-engineer", "action": "run-build", "halts_on_fail": true},
+        {"skill": "backend-engineer", "action": "verify-artifact"},
+        {"skill": "release-engineer", "action": "publish-release"}
+      ]
+    }
+  ],
+  "notifications": {
+    "build-failed": ["architect", "backend-engineer"],
+    "release-ready": ["all"],
+    "scraper-broken": ["platform-scraper", "architect"]
+  }
+}

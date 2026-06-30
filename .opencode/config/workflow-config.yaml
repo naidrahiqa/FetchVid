@@ -1,0 +1,87 @@
+# FetchVid Workflow Configuration
+version: "1.0"
+project: "FetchVid"
+
+workflows:
+  new-feature:
+    trigger: "feature-request"
+    steps:
+      - skill: "architect"
+        action: "design-review"
+        timeout: 300
+        halts_on_fail: true
+      - skill: "backend-engineer"
+        action: "implement-api"
+        parallel:
+          - skill: "ui-designer"
+            action: "implement-ui"
+          - skill: "platform-scraper"
+            action: "implement-scraper"
+      - skill: "release-engineer"
+        action: "build-test"
+        timeout: 600
+        halts_on_fail: true
+
+  add-platform:
+    trigger: "platform-request"
+    steps:
+      - skill: "architect"
+        action: "design-interface"
+        timeout: 180
+      - skill: "platform-scraper"
+        action: "implement-scraper"
+        timeout: 600
+        parallel:
+          - skill: "backend-engineer"
+            action: "register-platform"
+            timeout: 180
+          - skill: "ui-designer"
+            action: "add-ui-tab"
+            timeout: 300
+      - skill: "release-engineer"
+        action: "build-test"
+        timeout: 600
+
+  release-build:
+    trigger: "tag-created"
+    steps:
+      - skill: "release-engineer"
+        action: "run-build"
+        timeout: 900
+        halts_on_fail: true
+      - skill: "backend-engineer"
+        action: "verify-artifact"
+        timeout: 120
+      - skill: "release-engineer"
+        action: "publish-release"
+        timeout: 300
+
+notifications:
+  channels:
+    - type: "log"
+      enabled: true
+  events:
+    build-failed:
+      notify: ["architect", "backend-engineer"]
+      message: "Build gagal: {error}"
+    release-ready:
+      notify: ["all"]
+      message: "Release {version} siap!"
+    scraper-broken:
+      notify: ["platform-scraper", "architect"]
+      message: "Scraper {platform} bermasalah: {error}"
+
+monitoring:
+  metrics:
+    - name: "download_success_rate"
+      threshold: 80
+      severity: "warning"
+    - name: "scraper_error_rate"
+      threshold: 10
+      severity: "critical"
+    - name: "build_duration"
+      threshold: 600
+      severity: "warning"
+    - name: "ytdlp_version_days"
+      threshold: 30
+      severity: "info"

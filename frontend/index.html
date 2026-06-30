@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FetchVid</title>
+  <link rel="stylesheet" href="dist/style.css">
+  <script src="src/main.js" type="module"></script>
+</head>
+<body>
+  <div id="app" class="flex flex-col h-screen p-4 gap-3">
+    <!-- Top Bar -->
+    <div class="flex gap-2 items-center">
+      <h1 class="text-lg font-bold text-[var(--accent)]">FetchVid</h1>
+      <input id="urlInput" type="text" placeholder="Paste URL profile / share link..." 
+             class="flex-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--bg-tertiary)] text-sm focus:outline-none focus:border-[var(--accent)]">
+      <button id="btnFolder" class="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-sm">📂</button>
+      <button id="btnCookies" class="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-sm">🍪</button>
+    </div>
+
+    <!-- Platform Tabs -->
+    <div class="flex gap-1">
+      <button class="tab px-4 py-1.5 rounded-lg bg-[var(--accent)] text-white text-xs font-medium" data-platform="facebook">FB</button>
+      <button class="tab px-4 py-1.5 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-xs font-medium hover:bg-[var(--bg-tertiary)]" data-platform="instagram">IG</button>
+      <button class="tab px-4 py-1.5 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-xs font-medium hover:bg-[var(--bg-tertiary)]" data-platform="tiktok">TT</button>
+      <button id="btnExtract" class="px-4 py-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-medium ml-auto">Ambil Daftar Video</button>
+      <button id="btnScripts" class="px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-xs">Scripts</button>
+    </div>
+
+    <!-- Video List -->
+    <div class="flex-1 flex flex-col rounded-xl bg-[var(--bg-secondary)] p-3 gap-2 min-h-0">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-medium text-[var(--text-secondary)]">
+          Daftar Video: <span id="count">0</span>
+        </span>
+        <div class="flex gap-2">
+          <button id="btnSelectAll" class="text-xs text-[var(--accent)] hover:underline">Select All</button>
+          <button id="btnDeselect" class="text-xs text-[var(--text-secondary)] hover:underline">Deselect</button>
+          <button id="btnPaste" class="text-xs text-[var(--accent)] hover:underline">Paste URLs</button>
+          <button id="btnClear" class="text-xs text-[var(--error)] hover:underline">Clear</button>
+        </div>
+      </div>
+      <div id="videoList" class="flex-1 overflow-y-auto space-y-0.5">
+        <div class="text-center text-[var(--text-secondary)] text-xs py-8">Belum ada video. Paste URL atau klik "Ambil Daftar Video"</div>
+      </div>
+    </div>
+
+    <!-- Download Controls -->
+    <div class="flex items-center gap-3">
+      <label class="text-xs text-[var(--text-secondary)]">Download bareng:</label>
+      <input id="concurrent" type="number" value="3" min="1" max="10" 
+             class="w-12 px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--bg-tertiary)] text-xs text-center">
+      <span class="text-xs text-[var(--text-secondary)]">reel sekaligus</span>
+      <button id="btnDownload" class="ml-auto px-6 py-2 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+        DOWNLOAD VIDEO
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div id="progressContainer" class="hidden">
+      <div class="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
+        <span id="progressText">0 / 0</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+        <div id="progressBar" class="h-full bg-[var(--accent)] rounded-full transition-all duration-300" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="h-32 rounded-xl bg-[var(--bg-secondary)] overflow-y-auto text-xs font-mono p-2 space-y-0.5" id="log">
+      <div class="text-[var(--text-secondary)]">FetchVid siap. Masukkan URL profile untuk memulai.</div>
+    </div>
+  </div>
+</body>
+</html>

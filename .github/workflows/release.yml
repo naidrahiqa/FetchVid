@@ -1,0 +1,102 @@
+name: Build & Release FetchVid
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Create release with tag'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build with Wails
+        run: |
+          $env:Path += ";$env:USERPROFILE\go\bin"
+          wails build -production -trimpath -s -o FetchVid.exe
+
+      - name: Test executable
+        run: |
+          if (Test-Path "build/bin/FetchVid.exe") {
+            Write-Output "Build OK: build/bin/FetchVid.exe"
+            Get-Item "build/bin/FetchVid.exe" | Select-Object Length
+          } elseif (Test-Path "FetchVid.exe") {
+            Write-Output "Build OK: FetchVid.exe"
+            Get-Item "FetchVid.exe" | Select-Object Length
+          } else {
+            Write-Output "Build file not found"
+            Get-ChildItem -Recurse -Filter "*.exe" | Select-Object FullName
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FetchVid-windows-amd64
+          path: |
+            build/bin/FetchVid.exe
+            FetchVid.exe
+          if-no-files-found: error
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: FetchVid ${{ github.ref_name }}
+          body: |
+            ## FetchVid ${{ github.ref_name }}
+
+            ### Download
+            - [FetchVid.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/FetchVid.exe)
+
+            ### Supported Platforms
+            - Facebook (Reels & Videos)
+            - Instagram (Reels)
+            - TikTok (Videos)
+
+            ### Cara Pakai
+            1. Download FetchVid.exe
+            2. Jalankan (first run akan download yt-dlp otomatis)
+            3. Masukkan URL profile / paste reel URLs
+            4. Pilih folder penyimpanan
+            5. Klik download
+
+            ### Changelog
+            See [CHANGELOG.md](CHANGELOG.md) for details
+          files: |
+            build/bin/FetchVid.exe
+            FetchVid.exe
+          generate_release_notes: true
