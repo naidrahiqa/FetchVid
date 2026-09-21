@@ -15,11 +15,11 @@ import (
 )
 
 type App struct {
-	ctx        context.Context
-	queue      *engine.Queue
-	ytdlp      *engine.Ytdlp
-	settings   *Settings
-	mu         sync.Mutex
+	ctx      context.Context
+	queue    *engine.Queue
+	ytdlp    *engine.Ytdlp
+	settings *Settings
+	mu       sync.Mutex
 }
 
 type VideoInfo struct {
@@ -51,18 +51,15 @@ func NewApp() *App {
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Init yt-dlp
 	yt, err := engine.NewYtdlp()
 	if err != nil {
 		wailsRuntime.LogInfo(a.ctx, "yt-dlp not found, will download on first use")
-		a.ytdlp = nil
 	} else {
 		a.ytdlp = yt
 		ver, _ := yt.Version()
 		wailsRuntime.LogInfo(a.ctx, "yt-dlp: "+ver)
 	}
 
-	// Setup download callbacks
 	a.queue.OnProgress = func(p engine.QueueProgress) {
 		wailsRuntime.EventsEmit(a.ctx, "download-progress", p)
 	}
@@ -74,10 +71,6 @@ func (a *App) Startup(ctx context.Context) {
 	}
 }
 
-// ============================================================
-//  Wails Bindings
-// ============================================================
-
 func (a *App) DetectPlatform(rawurl string) string {
 	p := platform.Detect(rawurl)
 	if p == nil {
@@ -87,12 +80,9 @@ func (a *App) DetectPlatform(rawurl string) string {
 }
 
 func (a *App) ExtractURLs(rawurl string) Response {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	// Check if input contains multiple URLs (multiline or space-separated)
+	// Parse multiple URLs without holding the lock
 	if strings.ContainsAny(rawurl, "\n\r ") {
-		return a.ParseURLs(rawurl)
+		return a.parseURLs(rawurl)
 	}
 
 	p := platform.Detect(rawurl)
@@ -100,10 +90,9 @@ func (a *App) ExtractURLs(rawurl string) Response {
 		return Response{Success: false, Message: "URL tidak dikenali. Support: Facebook, Instagram, TikTok"}
 	}
 
-	var entries []platform.VideoInfo
-	var err error
-
-	entries, err = p.ExtractURLs(rawurl, a.settings.CookiesFile)
+	// Don't hold lock during network call
+	cookiesFile := a.settings.CookiesFile
+	entries, err := p.ExtractURLs(rawurl, cookiesFile)
 	if err != nil {
 		return Response{Success: false, Message: err.Error()}
 	}
@@ -120,8 +109,7 @@ func (a *App) ExtractURLs(rawurl string) Response {
 	return Response{Success: true, Message: "OK", Data: info}
 }
 
-// ParseURLs parses raw text (multiline/space-separated) into video entries
-func (a *App) ParseURLs(rawtext string) Response {
+func (a *App) parseURLs(rawtext string) Response {
 	lines := strings.Fields(rawtext)
 	var entries []VideoInfo
 	seen := make(map[string]bool)
@@ -132,18 +120,15 @@ func (a *App) ParseURLs(rawtext string) Response {
 			continue
 		}
 
-		// Normalize URL
 		if !strings.HasPrefix(line, "http") {
 			line = "https://" + line
 		}
 
-		// Skip if already seen
 		if seen[line] {
 			continue
 		}
 		seen[line] = true
 
-		// Detect platform
 		p := platform.Detect(line)
 		source := "unknown"
 		if p != nil {
@@ -155,10 +140,9 @@ func (a *App) ParseURLs(rawtext string) Response {
 		} else if strings.Contains(line, "tiktok.com") || strings.Contains(line, "vm.tiktok") {
 			source = "tiktok"
 		} else {
-			continue // skip non-video URLs
+			continue
 		}
 
-		// Extract title from URL
 		title := extractTitleFromURL(line)
 		entries = append(entries, VideoInfo{URL: line, Title: title, Source: source})
 	}
@@ -185,12 +169,20 @@ func (a *App) QueueDownload(videos []VideoInfo) Response {
 }
 
 func (a *App) StartDownload(concurrent int) Response {
+	if concurrent < 1 {
+		concurrent = 1
+	}
+	if concurrent > 10 {
+		concurrent = 10
+	}
+
+	a.mu.Lock()
 	if a.ytdlp == nil {
 		yt, err := engine.NewYtdlp()
 		if err != nil {
-			// Auto-download yt-dlp
 			yt = &engine.Ytdlp{}
 			if dlErr := yt.EnsureDownloaded(); dlErr != nil {
+				a.mu.Unlock()
 				return Response{Success: false, Message: "Gagal download yt-dlp: " + dlErr.Error()}
 			}
 			a.ytdlp = yt
@@ -198,15 +190,22 @@ func (a *App) StartDownload(concurrent int) Response {
 			a.ytdlp = yt
 		}
 	}
+	ytdlpPath := a.ytdlp.Path
+	a.mu.Unlock()
 
 	outDir := a.settings.OutputDir
 	if outDir == "" {
-		home, _ := os.UserHomeDir()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return Response{Success: false, Message: "Gagal dapat home dir: " + err.Error()}
+		}
 		outDir = filepath.Join(home, "Downloads", "FetchVid")
 	}
-	os.MkdirAll(outDir, 0755)
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return Response{Success: false, Message: "Gagal buat folder: " + err.Error()}
+	}
 
-	go a.queue.Start(concurrent, outDir, a.settings.CookiesFile, a.ytdlp.Path)
+	go a.queue.Start(concurrent, outDir, a.settings.CookiesFile, ytdlpPath)
 	return Response{Success: true, Message: "Download dimulai"}
 }
 
@@ -273,7 +272,9 @@ func (a *App) DownloadYtdlp() Response {
 	if err := yt.EnsureDownloaded(); err != nil {
 		return Response{Success: false, Message: "Gagal download yt-dlp: " + err.Error()}
 	}
+	a.mu.Lock()
 	a.ytdlp = yt
+	a.mu.Unlock()
 	ver, _ := yt.Version()
 	return Response{Success: true, Message: "yt-dlp " + ver + " siap!"}
 }
@@ -292,7 +293,6 @@ func (a *App) SaveSettingsData(data string) Response {
 	return Response{Success: true, Message: "Disimpan"}
 }
 
-// extractTitleFromURL gets a title from a direct reel/video URL
 func extractTitleFromURL(rawurl string) string {
 	parts := strings.Split(rawurl, "/")
 	for i := len(parts) - 1; i >= 0; i-- {
@@ -310,12 +310,7 @@ func extractTitleFromURL(rawurl string) string {
 	return "Video"
 }
 
-// ExtractTikTokFromVideo extracts channel_id from a single video URL
-// and returns all videos from that user/profile
 func (a *App) ExtractTikTokFromVideo(videoURL string) Response {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
 	p := platform.Detect(videoURL)
 	if p == nil || p.Name() != "tiktok" {
 		return Response{Success: false, Message: "URL bukan TikTok video"}
@@ -326,15 +321,17 @@ func (a *App) ExtractTikTokFromVideo(videoURL string) Response {
 		return Response{Success: false, Message: "Platform error"}
 	}
 
-	// Extract channel_id from single video
-	channelID, err := tiktok.ExtractChannelIDFromVideo(videoURL, a.settings.CookiesFile)
-	if err != nil || channelID == "" {
+	cookiesFile := a.settings.CookiesFile
+	channelID, err := tiktok.ExtractChannelIDFromVideo(videoURL, cookiesFile)
+	if err != nil {
 		return Response{Success: false, Message: "Gagal extract channel_id: " + err.Error()}
 	}
+	if channelID == "" {
+		return Response{Success: false, Message: "channel_id tidak ditemukan di video ini"}
+	}
 
-	// Use channel_id to get all videos
 	profileURL := "tiktokuser:" + channelID
-	entries, err := tiktok.ExtractURLs(profileURL, a.settings.CookiesFile)
+	entries, err := tiktok.ExtractURLs(profileURL, cookiesFile)
 	if err != nil {
 		return Response{Success: false, Message: "Gagal ambil video dari profile: " + err.Error()}
 	}
@@ -349,22 +346,4 @@ func (a *App) ExtractTikTokFromVideo(videoURL string) Response {
 	}
 
 	return Response{Success: true, Message: fmt.Sprintf("OK %d video", len(entries)), Data: info}
-}
-
-// resolveViaYtdlp uses yt-dlp to resolve Facebook share URLs
-func (a *App) resolveViaYtdlp(rawurl string) string {
-	if a.ytdlp == nil {
-		return ""
-	}
-	entries, err := a.ytdlp.ExtractPlaylist(rawurl)
-	if err != nil {
-		if resolvedErr, ok := err.(*engine.ResolvedURLError); ok {
-			return resolvedErr.ResolvedURL
-		}
-		return ""
-	}
-	if len(entries) > 0 {
-		return rawurl
-	}
-	return ""
 }

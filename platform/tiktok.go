@@ -9,6 +9,8 @@ import (
 
 type TikTok struct{}
 
+var reChannelID = regexp.MustCompile(`"channel_id"\s*:\s*"([^"]+)"`)
+
 func (t *TikTok) Name() string { return "tiktok" }
 
 func (t *TikTok) Match(rawurl string) bool {
@@ -31,7 +33,7 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 		return entries, nil
 	}
 
-	// All failed - return detailed error
+	// All failed - return error
 	errMsg := ""
 	if err1 != nil {
 		errMsg = err1.Error()
@@ -43,15 +45,13 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 		errMsg = "Tidak ada video ditemukan"
 	}
 
-	// Add helpful hint for TikTok embedding disabled
 	if strings.Contains(errMsg, "secondary user ID") {
 		errMsg += "\n\nTip: Jika ini akun dengan embedding disabled, klik 'Paste URLs' lalu paste 1 URL video dari akun tersebut."
 	}
 
-	return nil, fmt.Errorf(errMsg)
+	return nil, fmt.Errorf("%s", errMsg)
 }
 
-// ExtractChannelIDFromVideo extracts channel_id from a single TikTok video URL
 func (t *TikTok) ExtractChannelIDFromVideo(videoURL, cookies string) (string, error) {
 	ytdlpPath := findYtdlpLocate()
 
@@ -68,9 +68,7 @@ func (t *TikTok) ExtractChannelIDFromVideo(videoURL, cookies string) (string, er
 	cmd := exec.Command(ytdlpPath, args...)
 	out, _ := cmd.CombinedOutput()
 
-	output := string(out)
-	re := regexp.MustCompile(`"channel_id"\s*:\s*"([^"]+)"`)
-	matches := re.FindStringSubmatch(output)
+	matches := reChannelID.FindStringSubmatch(string(out))
 	if len(matches) >= 2 {
 		return matches[1], nil
 	}
@@ -110,20 +108,13 @@ func (t *TikTok) tryExtract(ytdlpPath, rawurl, cookies string, flatPlaylist bool
 		if err != nil {
 			continue
 		}
-		if !seen[entry.URL] {
+		if entry.URL != "" && !seen[entry.URL] {
 			seen[entry.URL] = true
 			entries = append(entries, entry)
 		}
 	}
 
 	return entries, nil
-}
-
-func truncateStr(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
 }
 
 func (t *TikTok) ConsoleScripts() []ScriptInfo {

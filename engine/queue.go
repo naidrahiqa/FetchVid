@@ -17,28 +17,28 @@ type Job struct {
 }
 
 type Queue struct {
-	mu       sync.Mutex
-	Jobs     []Job
-	Pending  []int // indices of pending jobs
-	running  bool
-	paused   bool
-	stopped  bool
-	Progress QueueProgress
+	mu        sync.Mutex
+	Jobs      []Job
+	Pending   []int
+	running   bool
+	paused    bool
+	stopped   bool
+	Progress  QueueProgress
 	OnProgress func(QueueProgress)
-	OnJobDone   func(Job)
-	OnComplete  func(QueueProgress)
+	OnJobDone  func(Job)
+	OnComplete func(QueueProgress)
 }
 
 type QueueProgress struct {
-	Total     int     `json:"total"`
-	Completed int     `json:"completed"`
-	Success   int     `json:"success"`
-	Failed    int     `json:"failed"`
-	Percent   float64 `json:"percent"`
-	Running   bool    `json:"running"`
-	Paused    bool    `json:"paused"`
-	Elapsed   string  `json:"elapsed"`
-	StartTime time.Time `json:"-"`
+	Total     int        `json:"total"`
+	Completed int        `json:"completed"`
+	Success   int        `json:"success"`
+	Failed    int        `json:"failed"`
+	Percent   float64    `json:"percent"`
+	Running   bool       `json:"running"`
+	Paused    bool       `json:"paused"`
+	Elapsed   string     `json:"elapsed"`
+	StartTime time.Time  `json:"-"`
 }
 
 func NewQueue() *Queue {
@@ -58,6 +58,10 @@ func (q *Queue) Add(jobs []Job) {
 }
 
 func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath string) {
+	if concurrent < 1 {
+		concurrent = 1
+	}
+
 	q.mu.Lock()
 	if q.running {
 		q.mu.Unlock()
@@ -70,21 +74,23 @@ func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath strin
 		Total:     len(q.Pending),
 		StartTime: time.Now(),
 	}
+	pendingSnapshot := make([]int, len(q.Pending))
+	copy(pendingSnapshot, q.Pending)
 	q.mu.Unlock()
 
-	// Worker pool
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, concurrent)
 
-	// Fill semaphore for concurrent control
+	// Fill semaphore
 	for i := 0; i < concurrent; i++ {
 		sem <- struct{}{}
 	}
 
 	go func() {
+		idx := 0
 		for {
 			q.mu.Lock()
-			if q.stopped || len(q.Pending) == 0 {
+			if q.stopped || idx >= len(pendingSnapshot) {
 				q.mu.Unlock()
 				break
 			}
@@ -93,12 +99,11 @@ func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath strin
 				time.Sleep(200 * time.Millisecond)
 				continue
 			}
-
-			idx := q.Pending[0]
-			q.Pending = q.Pending[1:]
+			jobIdx := pendingSnapshot[idx]
+			idx++
 			q.mu.Unlock()
 
-			<-sem // Wait for available slot
+			<-sem
 
 			wg.Add(1)
 			go func(jobIdx int) {
@@ -115,10 +120,20 @@ func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath strin
 					OutputDir: outputDir,
 				}
 
-				err := yt.DownloadVideo(job.URL, job.Index, q.Progress.Total, nil)
+				var dlErr error
+				for retry := 0; retry < 2; retry++ {
+					dlErr = yt.DownloadVideo(job.URL, job.Index, q.Progress.Total, nil)
+					if dlErr == nil {
+						break
+					}
+					if retry < 1 {
+						time.Sleep(2 * time.Second)
+					}
+				}
+
 				q.mu.Lock()
-				if err != nil {
-					job.Error = err.Error()
+				if dlErr != nil {
+					job.Error = dlErr.Error()
 					q.Progress.Failed++
 				} else {
 					job.Success = true
@@ -127,7 +142,9 @@ func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath strin
 				q.Progress.Completed++
 				elapsed := time.Since(q.Progress.StartTime)
 				q.Progress.Elapsed = formatDuration(elapsed)
-				q.Progress.Percent = float64(q.Progress.Completed) / float64(q.Progress.Total) * 100
+				if q.Progress.Total > 0 {
+					q.Progress.Percent = float64(q.Progress.Completed) / float64(q.Progress.Total) * 100
+				}
 				prog := q.Progress
 				j := *job
 				q.mu.Unlock()
@@ -138,7 +155,7 @@ func (q *Queue) Start(concurrent int, outputDir, cookies string, ytdlpPath strin
 				if q.OnProgress != nil {
 					q.OnProgress(prog)
 				}
-			}(idx)
+			}(jobIdx)
 		}
 
 		wg.Wait()

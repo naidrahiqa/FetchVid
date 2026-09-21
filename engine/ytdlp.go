@@ -35,6 +35,11 @@ type DownloadProgress struct {
 	Filename string
 }
 
+var (
+	reProgress     = regexp.MustCompile(`\[download\]\s+([\d.]+)%\s+of\s+~?([\d.]+[KMG]?iB)\s+at\s+([\d.]+[KMG]?iB/s)\s+ETA\s+([\d:]+)`)
+	reProgressSimple = regexp.MustCompile(`\[download\]\s+([\d.]+)%`)
+)
+
 func NewYtdlp() (*Ytdlp, error) {
 	yt := &Ytdlp{}
 	if p := findInPath(); p != "" {
@@ -58,17 +63,7 @@ func findInPath() string {
 }
 
 func findInAppData() string {
-	var dir string
-	if runtime.GOOS == "windows" {
-		dir = filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
-	} else {
-		xdg := os.Getenv("XDG_CONFIG_HOME")
-		if xdg == "" {
-			home, _ := os.UserHomeDir()
-			xdg = filepath.Join(home, ".config")
-		}
-		dir = filepath.Join(xdg, "FetchVid", "bin")
-	}
+	dir := configDir()
 	for _, name := range []string{"yt-dlp", "yt-dlp.exe"} {
 		p := filepath.Join(dir, name)
 		if _, err := os.Stat(p); err == nil {
@@ -76,6 +71,18 @@ func findInAppData() string {
 		}
 	}
 	return ""
+}
+
+func configDir() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
+	}
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	if xdg == "" {
+		home, _ := os.UserHomeDir()
+		xdg = filepath.Join(home, ".config")
+	}
+	return filepath.Join(xdg, "FetchVid", "bin")
 }
 
 func (y *Ytdlp) EnsureDownloaded() error {
@@ -86,17 +93,7 @@ func (y *Ytdlp) EnsureDownloaded() error {
 		}
 	}
 
-	var dir string
-	if runtime.GOOS == "windows" {
-		dir = filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
-	} else {
-		xdg := os.Getenv("XDG_CONFIG_HOME")
-		if xdg == "" {
-			home, _ := os.UserHomeDir()
-			xdg = filepath.Join(home, ".config")
-		}
-		dir = filepath.Join(xdg, "FetchVid", "bin")
-	}
+	dir := configDir()
 	os.MkdirAll(dir, 0755)
 
 	var url, dest string
@@ -108,15 +105,13 @@ func (y *Ytdlp) EnsureDownloaded() error {
 		url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 	}
 
+	// Remove partial file if exists
+	os.Remove(dest)
+
 	fmt.Printf("Downloading yt-dlp from %s ...\n", url)
 
-	out, err := os.Create(dest)
-	if err != nil {
-		return fmt.Errorf("gagal buat file: %w", err)
-	}
-	defer out.Close()
-
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("gagal download: %w", err)
 	}
@@ -126,13 +121,22 @@ func (y *Ytdlp) EnsureDownloaded() error {
 		return fmt.Errorf("HTTP %d saat download yt-dlp", resp.StatusCode)
 	}
 
-	_, err = io.Copy(out, resp.Body)
+	out, err := os.Create(dest)
 	if err != nil {
+		return fmt.Errorf("gagal buat file: %w", err)
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, resp.Body); err != nil {
+		os.Remove(dest)
 		return fmt.Errorf("gagal write: %w", err)
 	}
+	out.Close()
 
 	if runtime.GOOS != "windows" {
-		os.Chmod(dest, 0755)
+		if err := os.Chmod(dest, 0755); err != nil {
+			return fmt.Errorf("gagal chmod: %w", err)
+		}
 	}
 
 	y.Path = dest
@@ -149,7 +153,6 @@ func (y *Ytdlp) Version() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// ExtractPlaylist extracts video URLs from a profile/playlist URL using --flat-playlist
 func (y *Ytdlp) ExtractPlaylist(url string) ([]VideoEntry, error) {
 	args := []string{
 		"--flat-playlist", "--dump-json",
@@ -163,19 +166,19 @@ func (y *Ytdlp) ExtractPlaylist(url string) ([]VideoEntry, error) {
 
 	cmd := exec.Command(y.Path, args...)
 	hideWindow(cmd)
-	out, err := cmd.Output()
+
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		// Try to parse stderr for useful info
-		if stderr, ok := err.(*exec.ExitError); ok {
-			errMsg := string(stderr.Stderr)
-			return nil, parseYtdlpError(errMsg, url)
-		}
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 
 	var entries []VideoEntry
-	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
@@ -200,50 +203,23 @@ func (y *Ytdlp) ExtractPlaylist(url string) ([]VideoEntry, error) {
 			})
 		}
 	}
+
+	cmd.Wait()
 	return entries, nil
 }
 
-var reYtdlpError = regexp.MustCompile(`/people/[^/]+/(\d+)`)
-
-func parseYtdlpError(stderr string, originalURL string) error {
-	// Try to extract user ID from Facebook /people/ redirect
-	if matches := reYtdlpError.FindStringSubmatch(stderr); len(matches) > 1 {
-		uid := matches[1]
-		return &ResolvedURLError{
-			ResolvedURL: fmt.Sprintf("https://www.facebook.com/profile.php?id=%s", uid),
-			UID:         uid,
-		}
-	}
-	return fmt.Errorf("yt-dlp: %s", truncate(stderr, 200))
-}
-
-type ResolvedURLError struct {
-	ResolvedURL string
-	UID         string
-}
-
-func (e *ResolvedURLError) Error() string {
-	return fmt.Sprintf("resolved to %s", e.ResolvedURL)
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
-}
-
-// DownloadVideo downloads a single video and sends progress updates to progressCh
 func (y *Ytdlp) DownloadVideo(url string, jobID, total int, progressCh chan<- DownloadProgress) error {
-	filename := "%(title).80s_%(id)s.%(ext)s"
+	filename := "%(title).80s [%(id)s].%(ext)s"
 	fullPath := filepath.Join(y.OutputDir, filename)
 
 	args := []string{
-		"--no-warnings", "--ignore-errors",
+		"--no-warnings",
 		"--no-check-certificates", "--geo-bypass",
 		"--restrict-filenames", "--no-playlist",
 		"--no-overwrites", "--continue",
 		"--newline",
+		"-f", "best[ext=mp4]/best",
+		"--merge-output-format", "mp4",
 		"-o", fullPath,
 	}
 	if y.Cookies != "" {
@@ -268,7 +244,9 @@ func (y *Ytdlp) DownloadVideo(url string, jobID, total int, progressCh chan<- Do
 	}
 
 	// Parse progress from stdout
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -278,37 +256,51 @@ func (y *Ytdlp) DownloadVideo(url string, jobID, total int, progressCh chan<- Do
 		}
 	}()
 
-	// Read stderr for errors
-	go io.Copy(io.Discard, stderr)
+	// Capture stderr
+	var stderrBuf strings.Builder
+	go io.Copy(&stderrBuf, stderr)
 
-	return cmd.Wait()
+	waitErr := cmd.Wait()
+	<-done // Wait for stdout reader to finish
+
+	if waitErr != nil {
+		errMsg := stderrBuf.String()
+		if errMsg != "" {
+			return fmt.Errorf("%s\n%s", waitErr.Error(), truncate(errMsg, 300))
+		}
+		return waitErr
+	}
+	return nil
 }
-
-var reProgress = regexp.MustCompile(`\[download\]\s+([\d.]+)%\s+of\s+~?([\d.]+[KMG]?iB])\s+at\s+([\d.]+[KMG]?iB/s])\s+ETA\s+([\d:]+)`)
 
 func parseProgress(line string) *DownloadProgress {
 	if !strings.Contains(line, "[download]") {
 		return nil
 	}
 	matches := reProgress.FindStringSubmatch(line)
-	if len(matches) < 5 {
-		// Try simpler format: [download] 100% of ...
-		reSimple := regexp.MustCompile(`\[download\]\s+([\d.]+)%`)
-		if m := reSimple.FindStringSubmatch(line); len(m) > 1 {
-			pct, _ := strconv.ParseFloat(m[1], 64)
-			return &DownloadProgress{Percent: pct / 100}
+	if len(matches) >= 5 {
+		pct, _ := strconv.ParseFloat(matches[1], 64)
+		return &DownloadProgress{
+			Percent: pct / 100,
+			Speed:   matches[3],
+			ETA:     matches[4],
 		}
-		return nil
 	}
-	pct, _ := strconv.ParseFloat(matches[1], 64)
-	return &DownloadProgress{
-		Percent: pct / 100,
-		Speed:   matches[3],
-		ETA:     matches[4],
+	// Fallback: simpler format
+	if m := reProgressSimple.FindStringSubmatch(line); len(m) > 1 {
+		pct, _ := strconv.ParseFloat(m[1], 64)
+		return &DownloadProgress{Percent: pct / 100}
 	}
+	return nil
 }
 
-// FormatFileSize returns human-readable file size
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
+}
+
 func FormatFileSize(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {
@@ -322,7 +314,6 @@ func FormatFileSize(bytes int64) string {
 	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-// Time ago
 func TimeAgo(t time.Time) string {
 	d := time.Since(t)
 	if d.Hours() > 24*30 {

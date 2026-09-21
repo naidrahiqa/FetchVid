@@ -26,41 +26,51 @@ func userHome() string {
 
 func DefaultSettings() *Settings {
 	return &Settings{
-		OutputDir:   filepath.Join(userHome(), "Downloads", "FetchVid"),
-		Concurrent:  3,
-		Theme:       "dark",
+		OutputDir:  filepath.Join(userHome(), "Downloads", "FetchVid"),
+		Concurrent: 3,
+		Theme:      "dark",
 	}
 }
 
-func settingsPath() string {
-	var dir string
+func settingsDir() string {
 	if runtime.GOOS == "windows" {
-		dir = filepath.Join(os.Getenv("APPDATA"), "FetchVid")
-	} else {
-		xdg := os.Getenv("XDG_CONFIG_HOME")
-		if xdg == "" {
-			xdg = filepath.Join(userHome(), ".config")
-		}
-		dir = filepath.Join(xdg, "FetchVid")
+		return filepath.Join(os.Getenv("APPDATA"), "FetchVid")
 	}
-	os.MkdirAll(dir, 0755)
-	return filepath.Join(dir, "config.json")
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	if xdg == "" {
+		xdg = filepath.Join(userHome(), ".config")
+	}
+	return filepath.Join(xdg, "FetchVid")
 }
 
 func LoadSettings() *Settings {
+	dir := settingsDir()
+	os.MkdirAll(dir, 0755)
+
 	s := DefaultSettings()
-	data, err := os.ReadFile(settingsPath())
+	data, err := os.ReadFile(filepath.Join(dir, "config.json"))
 	if err != nil {
 		return s
 	}
-	json.Unmarshal(data, s)
+	if err := json.Unmarshal(data, s); err != nil {
+		return s
+	}
 	if s.Concurrent < 1 {
 		s.Concurrent = 3
+	}
+	if s.Concurrent > 10 {
+		s.Concurrent = 10
 	}
 	return s
 }
 
 func SaveSettings(s *Settings) {
-	data, _ := json.MarshalIndent(s, "", "  ")
-	os.WriteFile(settingsPath(), data, 0644)
+	dir := settingsDir()
+	os.MkdirAll(dir, 0755)
+
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return
+	}
+	os.WriteFile(filepath.Join(dir, "config.json"), data, 0644)
 }

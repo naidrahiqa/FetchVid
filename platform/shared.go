@@ -9,7 +9,15 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"time"
 )
+
+type VideoInfo struct {
+	URL    string `json:"url"`
+	Title  string `json:"title"`
+	Source string `json:"source"`
+}
 
 // parseVideoEntry parses a yt-dlp JSON line into a VideoInfo
 func parseVideoEntry(line, source string) (VideoInfo, error) {
@@ -27,7 +35,7 @@ func parseVideoEntry(line, source string) (VideoInfo, error) {
 		u = raw.URL
 	}
 	if u == "" {
-		return VideoInfo{}, nil
+		return VideoInfo{}, fmt.Errorf("empty URL in entry")
 	}
 	return VideoInfo{
 		URL:    u,
@@ -48,8 +56,6 @@ func configDir() string {
 	return filepath.Join(xdg, "FetchVid", "bin")
 }
 
-// findYtdlpLocate returns the path to yt-dlp binary.
-// Checks PATH first, then app config dir. Auto-downloads if missing.
 func findYtdlpLocate() string {
 	for _, name := range []string{"yt-dlp", "yt-dlp.exe"} {
 		if p, err := exec.LookPath(name); err == nil {
@@ -63,7 +69,6 @@ func findYtdlpLocate() string {
 			return p
 		}
 	}
-	// Auto-download yt-dlp
 	p := downloadYtdlp(dir)
 	if p != "" {
 		return p
@@ -83,15 +88,10 @@ func downloadYtdlp(dir string) string {
 		url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 	}
 
-	fmt.Printf("Downloading yt-dlp from %s ...\n", url)
+	os.Remove(dest)
 
-	out, err := os.Create(dest)
-	if err != nil {
-		return ""
-	}
-	defer out.Close()
-
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return ""
 	}
@@ -101,13 +101,41 @@ func downloadYtdlp(dir string) string {
 		return ""
 	}
 
-	if _, err := io.Copy(out, resp.Body); err != nil {
+	out, err := os.Create(dest)
+	if err != nil {
 		return ""
 	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		os.Remove(dest)
+		return ""
+	}
+	out.Close()
 
 	if runtime.GOOS != "windows" {
 		os.Chmod(dest, 0755)
 	}
 
 	return dest
+}
+
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
+}
+
+func containsAny(s, substrs string) bool {
+	for _, c := range substrs {
+		if strings.ContainsRune(s, c) {
+			return true
+		}
+	}
+	return false
+}
+
+func truncateStr(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
