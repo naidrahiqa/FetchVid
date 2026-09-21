@@ -33,13 +33,7 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 
 	// All failed - return detailed error
 	errMsg := ""
-	if err1 != nil && strings.Contains(err1.Error(), "private") {
-		errMsg = "Akun ini private atau embedding disabled.\n"
-		errMsg += "Solusi:\n"
-		errMsg += "1. Pastikan cookies dari akun yang sudah FOLLOW akun ini\n"
-		errMsg += "2. Atau pakai Script dari FetchVid (login di browser dulu)\n"
-		errMsg += "3. Atau paste URL video manual"
-	} else if err1 != nil {
+	if err1 != nil {
 		errMsg = err1.Error()
 	}
 	if errMsg == "" && err2 != nil {
@@ -47,6 +41,11 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 	}
 	if errMsg == "" {
 		errMsg = "Tidak ada video ditemukan"
+	}
+
+	// Add helpful hint for TikTok embedding disabled
+	if strings.Contains(errMsg, "secondary user ID") {
+		errMsg += "\n\nTip: Jika ini akun dengan embedding disabled, klik 'Paste URLs' lalu paste 1 URL video dari akun tersebut."
 	}
 
 	return nil, fmt.Errorf(errMsg)

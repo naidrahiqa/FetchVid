@@ -330,8 +330,6 @@ btnSc.onclick=function(){
   }).catch(function(e){L('Error: '+e,'er')});
 };
 
-var currentProfileUrl='';
-
 btnEx.onclick=function(){
   var url=urlI.value.trim();
   if(!url){L('Masukkan URL profile!','er');return}
@@ -339,15 +337,7 @@ btnEx.onclick=function(){
   L('Analisa: '+url,'in');
   btnEx.disabled=true;btnEx.textContent='Loading...';
   go('ExtractURLs',url).then(function(r){
-    if(!r.success){
-      // Check if this is "embedding disabled" or "secondary user ID" error for TikTok
-      if(r.message && (r.message.indexOf('embedding disabled')!==-1 || r.message.indexOf('secondary user ID')!==-1) && /tiktok\.com/i.test(url)){
-        L('Embedding disabled - perlu URL video','wn');
-        document.getElementById('videoUrlModal').classList.add('show');
-        return;
-      }
-      L(r.message,'er');return
-    }
+    if(!r.success){L(r.message,'er');return}
     var d=r.data||[];
     if(!d.length){L(r.message||'Tidak ada video','wn');return}
     render(d);L('Ditemukan '+d.length+' video','ok');
