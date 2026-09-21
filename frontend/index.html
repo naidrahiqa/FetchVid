@@ -340,8 +340,8 @@ btnEx.onclick=function(){
   btnEx.disabled=true;btnEx.textContent='Loading...';
   go('ExtractURLs',url).then(function(r){
     if(!r.success){
-      // Check if this is "embedding disabled" error for TikTok
-      if(r.message && r.message.indexOf('embedding disabled')!==-1 && /tiktok\.com/i.test(url)){
+      // Check if this is "embedding disabled" or "secondary user ID" error for TikTok
+      if(r.message && (r.message.indexOf('embedding disabled')!==-1 || r.message.indexOf('secondary user ID')!==-1) && /tiktok\.com/i.test(url)){
         L('Embedding disabled - perlu URL video','wn');
         document.getElementById('videoUrlModal').classList.add('show');
         return;
