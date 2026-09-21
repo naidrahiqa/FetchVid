@@ -390,6 +390,7 @@ btnEx.onclick=function(){
   if(!url){L('Masukkan URL profile!','er');return}
   var p=detectPlatform(url);
   if(p)setActiveTab(p);
+  render([]);
   L('Analisa: '+url,'in');
   btnEx.disabled=true;btnEx.textContent='Loading...';
   go('ExtractURLs',url).then(function(r){
