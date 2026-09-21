@@ -201,7 +201,8 @@ func (a *App) StartDownload(concurrent int) Response {
 
 	outDir := a.settings.OutputDir
 	if outDir == "" {
-		outDir = filepath.Join(os.Getenv("USERPROFILE"), "Downloads", "FetchVid")
+		home, _ := os.UserHomeDir()
+		outDir = filepath.Join(home, "Downloads", "FetchVid")
 	}
 	os.MkdirAll(outDir, 0755)
 

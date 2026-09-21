@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 type Settings struct {
@@ -13,16 +14,35 @@ type Settings struct {
 	Theme       string `json:"theme"`
 }
 
+func userHome() string {
+	if h, err := os.UserHomeDir(); err == nil {
+		return h
+	}
+	if runtime.GOOS == "windows" {
+		return os.Getenv("USERPROFILE")
+	}
+	return os.Getenv("HOME")
+}
+
 func DefaultSettings() *Settings {
 	return &Settings{
-		OutputDir:   filepath.Join(os.Getenv("USERPROFILE"), "Downloads", "FetchVid"),
+		OutputDir:   filepath.Join(userHome(), "Downloads", "FetchVid"),
 		Concurrent:  3,
 		Theme:       "dark",
 	}
 }
 
 func settingsPath() string {
-	dir := filepath.Join(os.Getenv("APPDATA"), "FetchVid")
+	var dir string
+	if runtime.GOOS == "windows" {
+		dir = filepath.Join(os.Getenv("APPDATA"), "FetchVid")
+	} else {
+		xdg := os.Getenv("XDG_CONFIG_HOME")
+		if xdg == "" {
+			xdg = filepath.Join(userHome(), ".config")
+		}
+		dir = filepath.Join(xdg, "FetchVid")
+	}
 	os.MkdirAll(dir, 0755)
 	return filepath.Join(dir, "config.json")
 }

@@ -10,9 +10,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -58,8 +58,18 @@ func findInPath() string {
 }
 
 func findInAppData() string {
-	dir := filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
-	for _, name := range []string{"yt-dlp.exe", "yt-dlp"} {
+	var dir string
+	if runtime.GOOS == "windows" {
+		dir = filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
+	} else {
+		xdg := os.Getenv("XDG_CONFIG_HOME")
+		if xdg == "" {
+			home, _ := os.UserHomeDir()
+			xdg = filepath.Join(home, ".config")
+		}
+		dir = filepath.Join(xdg, "FetchVid", "bin")
+	}
+	for _, name := range []string{"yt-dlp", "yt-dlp.exe"} {
 		p := filepath.Join(dir, name)
 		if _, err := os.Stat(p); err == nil {
 			return p
@@ -70,18 +80,34 @@ func findInAppData() string {
 
 func (y *Ytdlp) EnsureDownloaded() error {
 	if y.Path != "" {
-		// Check if version is recent
 		ver, err := y.Version()
 		if err == nil && len(ver) > 0 {
 			return nil
 		}
 	}
 
-	dir := filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
+	var dir string
+	if runtime.GOOS == "windows" {
+		dir = filepath.Join(os.Getenv("APPDATA"), "FetchVid", "bin")
+	} else {
+		xdg := os.Getenv("XDG_CONFIG_HOME")
+		if xdg == "" {
+			home, _ := os.UserHomeDir()
+			xdg = filepath.Join(home, ".config")
+		}
+		dir = filepath.Join(xdg, "FetchVid", "bin")
+	}
 	os.MkdirAll(dir, 0755)
-	dest := filepath.Join(dir, "yt-dlp.exe")
 
-	url := "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+	var url, dest string
+	if runtime.GOOS == "windows" {
+		dest = filepath.Join(dir, "yt-dlp.exe")
+		url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+	} else {
+		dest = filepath.Join(dir, "yt-dlp")
+		url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+	}
+
 	fmt.Printf("Downloading yt-dlp from %s ...\n", url)
 
 	out, err := os.Create(dest)
@@ -105,13 +131,17 @@ func (y *Ytdlp) EnsureDownloaded() error {
 		return fmt.Errorf("gagal write: %w", err)
 	}
 
+	if runtime.GOOS != "windows" {
+		os.Chmod(dest, 0755)
+	}
+
 	y.Path = dest
 	return nil
 }
 
 func (y *Ytdlp) Version() (string, error) {
 	cmd := exec.Command(y.Path, "--version")
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	hideWindow(cmd)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -132,7 +162,7 @@ func (y *Ytdlp) ExtractPlaylist(url string) ([]VideoEntry, error) {
 	args = append(args, url)
 
 	cmd := exec.Command(y.Path, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	hideWindow(cmd)
 	out, err := cmd.Output()
 	if err != nil {
 		// Try to parse stderr for useful info
@@ -205,7 +235,7 @@ func truncate(s string, n int) string {
 
 // DownloadVideo downloads a single video and sends progress updates to progressCh
 func (y *Ytdlp) DownloadVideo(url string, jobID, total int, progressCh chan<- DownloadProgress) error {
-	filename := fmt.Sprintf("reel_%03d_%%(title)s_%%(id)s.%%(ext)s", jobID)
+	filename := "%(title).80s_%(id)s.%(ext)s"
 	fullPath := filepath.Join(y.OutputDir, filename)
 
 	args := []string{
@@ -222,7 +252,7 @@ func (y *Ytdlp) DownloadVideo(url string, jobID, total int, progressCh chan<- Do
 	args = append(args, url)
 
 	cmd := exec.Command(y.Path, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	hideWindow(cmd)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

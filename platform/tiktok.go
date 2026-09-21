@@ -15,7 +15,7 @@ func (t *TikTok) Match(rawurl string) bool {
 }
 
 func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error) {
-	// Use yt-dlp --flat-playlist to extract URLs from TikTok profile
+	ytdlpPath := findYtdlpLocate()
 	args := []string{
 		"--flat-playlist", "--dump-json",
 		"--no-warnings", "--ignore-errors",
@@ -26,7 +26,7 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 	}
 	args = append(args, rawurl)
 
-	cmd := exec.Command("yt-dlp", args...)
+	cmd := exec.Command(ytdlpPath, args...)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package app
 
 import (
 	"sync"
+	"time"
 )
 
 type Downloader struct {
@@ -49,14 +50,18 @@ func (d *Downloader) run(urls []VideoInfo, concurrent int, outputDir, cookiesFil
 		}
 		for d.paused {
 			d.mu.Unlock()
-			// wait briefly then recheck
+			time.Sleep(200 * time.Millisecond)
 			d.mu.Lock()
+			if !d.running {
+				d.mu.Unlock()
+				return
+			}
 		}
 		d.mu.Unlock()
 
 		progress.CurrentURL = v.URL
 		progress.Completed = i + 1
-		progress.Success = i + 1 // simplified: assume all succeed for stub
+		progress.Success = i + 1
 		if progressFn != nil {
 			progressFn(progress)
 		}

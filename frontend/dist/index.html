@@ -5,100 +5,159 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FetchVid</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--fg:#e6edf3;--fg2:#8b949e;--ac:#7c3aed;--ac2:#8b5cf6;--ok:#3fb950;--err:#f85149;--warn:#d29922}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden;height:100vh;display:flex;flex-direction:column}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+:root{
+  --bg:#09090b;--bg2:#18181b;--bg3:#27272a;--bg4:#3f3f46;
+  --fg:#fafafa;--fg2:#a1a1aa;--fg3:#71717a;
+  --ac:#8b5cf6;--ac2:#a78bfa;--ac3:#7c3aed;--ac-glow:rgba(139,92,246,.15);
+  --ok:#22c55e;--err:#ef4444;--warn:#eab308;
+  --radius:10px;--radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+  --shadow-lg:0 10px 30px rgba(0,0,0,.4);
+  --transition:all .2s cubic-bezier(.4,0,.2,1);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden;height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
 
-.row{display:flex;gap:8px;align-items:center;padding:8px 12px}
-.row input[type=text]{flex:1;padding:7px 12px;border-radius:6px;border:1px solid var(--bg3);background:var(--bg2);color:var(--fg);font-size:13px;outline:none}
-.row input[type=text]:focus{border-color:var(--ac)}
-.ibtn{padding:7px 10px;border-radius:6px;border:none;background:var(--bg2);color:var(--fg);font-size:15px;cursor:pointer}
-.ibtn:hover{background:var(--bg3)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
 
-.tabs{display:flex;gap:4px;padding:0 12px 8px;align-items:center}
-.tab{padding:6px 18px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg2);color:var(--fg2);transition:.15s}
-.tab:hover{background:var(--bg3)}.tab.on{background:var(--ac);color:#fff}
-.btn{padding:6px 18px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
-.btn-p{background:var(--ac);color:#fff}.btn-p:hover{background:var(--ac2)}.btn-p:disabled{opacity:.4;cursor:not-allowed}
-.btn-s{background:var(--bg2);color:var(--fg2)}.btn-s:hover{background:var(--bg3)}
-.btn-l{background:none;border:none;font-size:12px;cursor:pointer;color:var(--ac);padding:0}.btn-l:hover{text-decoration:underline}
-.btn-d{color:var(--err)}.btn-m{color:var(--fg2)}
+/* Header */
+.header{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
+.logo{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--ac),var(--ac3));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;box-shadow:0 0 12px var(--ac-glow)}
+.logo-text{font-size:15px;font-weight:700;color:var(--fg);letter-spacing:-.3px}
+.logo-ver{font-size:10px;color:var(--fg3);font-weight:500}
 
-.panel{flex:1;display:flex;flex-direction:column;margin:0 12px;border-radius:8px;background:var(--bg2);overflow:hidden;min-height:0}
-.panel-h{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bg3)}
-.panel-h span{font-size:12px;color:var(--fg2)}.panel-h .acts{display:flex;gap:10px}
+.url-box{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:0 12px;transition:var(--transition)}
+.url-box:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-glow)}
+.url-box input{flex:1;background:none;border:none;color:var(--fg);font-size:13px;padding:9px 0;outline:none;font-family:inherit}
+.url-box input::placeholder{color:var(--fg3)}
+
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:none;font-size:12px;font-weight:600;cursor:pointer;transition:var(--transition);font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--ac);color:#fff}.btn-p:hover{background:var(--ac2);box-shadow:0 0 16px var(--ac-glow)}.btn-p:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-s{background:var(--bg3);color:var(--fg2)}.btn-s:hover{background:var(--bg4);color:var(--fg)}
+
+/* Settings row */
+.settings{display:flex;align-items:center;gap:8px;padding:0 16px 10px}
+.settings-label{font-size:11px;color:var(--fg3);font-weight:500;white-space:nowrap}
+.folder-input{flex:1;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:6px 10px;color:var(--fg2);font-size:11px;font-family:inherit;outline:none}
+.ibtn{padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--bg3);background:var(--bg2);color:var(--fg2);font-size:12px;cursor:pointer;transition:var(--transition);font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+.ibtn:hover{background:var(--bg3);color:var(--fg);border-color:var(--bg4)}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;padding:0 16px 10px}
+.tab{padding:6px 20px;border-radius:20px;border:1px solid var(--bg3);font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--fg3);transition:var(--transition);font-family:inherit;letter-spacing:.3px}
+.tab:hover{background:var(--bg3);color:var(--fg2)}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 0 12px var(--ac-glow)}
+
+/* Panel */
+.panel{flex:1;display:flex;flex-direction:column;margin:0 12px;border-radius:var(--radius);background:var(--bg2);border:1px solid var(--bg3);overflow:hidden;min-height:0}
+.panel-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bg3)}
+.panel-h .title{font-size:12px;color:var(--fg2);font-weight:500}
+.panel-h .title strong{color:var(--fg);font-weight:700}
+.panel-h .acts{display:flex;gap:12px}
+.act-btn{background:none;border:none;font-size:11px;cursor:pointer;color:var(--fg3);padding:0;font-weight:500;transition:var(--transition);font-family:inherit}
+.act-btn:hover{color:var(--ac)}
+.act-btn.danger:hover{color:var(--err)}
+
 #vlist{flex:1;overflow-y:auto;padding:4px 0}
-.vid{display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px;cursor:pointer;transition:.1s}
-.vid:hover{background:var(--bg3)}.vid input{accent-color:var(--ac)}
-.vid .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600;white-space:nowrap}
-.empty{text-align:center;color:var(--fg2);font-size:12px;padding:40px 0}
+.vid{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:12px;cursor:pointer;transition:var(--transition);border-bottom:1px solid transparent}
+.vid:hover{background:rgba(139,92,246,.05);border-bottom-color:var(--bg3)}
+.vid:last-child{border-bottom:none}
+.vid input[type=checkbox]{accent-color:var(--ac);width:14px;height:14px;cursor:pointer}
+.vid .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg);font-weight:500}
+.badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.empty{text-align:center;color:var(--fg3);font-size:12px;padding:50px 20px;line-height:1.8}
 
-.dlbar{display:flex;align-items:center;gap:10px;padding:8px 12px}
-.dlbar label{font-size:12px;color:var(--fg2)}
-.dlbar input[type=number]{width:48px;padding:4px;border-radius:4px;background:var(--bg2);border:1px solid var(--bg3);color:var(--fg);font-size:12px;text-align:center;outline:none}
-#btnDL{margin-left:auto;padding:8px 28px;border-radius:6px;border:none;background:var(--ac);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
-#btnDL:hover{background:var(--ac2)}#btnDL:disabled{opacity:.4;cursor:not-allowed}
+/* Download bar */
+.dlbar{display:flex;align-items:center;gap:10px;padding:10px 16px}
+.dlbar label{font-size:11px;color:var(--fg3);font-weight:500}
+.dlbar input[type=number]{width:46px;padding:5px;border-radius:var(--radius-sm);background:var(--bg2);border:1px solid var(--bg3);color:var(--fg);font-size:12px;text-align:center;outline:none;font-family:inherit;transition:var(--transition)}
+.dlbar input[type=number]:focus{border-color:var(--ac)}
+#btnDL{margin-left:auto;padding:9px 24px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--ac),var(--ac3));color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:var(--transition);font-family:inherit;letter-spacing:.3px;box-shadow:0 2px 10px var(--ac-glow)}
+#btnDL:hover{box-shadow:0 4px 20px rgba(139,92,246,.35);transform:translateY(-1px)}
+#btnDL:active{transform:translateY(0) scale(.98)}
+#btnDL:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
 
-#progWrap{display:none;padding:0 12px 4px}#progWrap.show{display:block}
-.prog-h{display:flex;justify-content:space-between;margin-bottom:3px}.prog-h span{font-size:11px;color:var(--fg2)}
-.prog-t{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden}
-.prog-f{height:100%;border-radius:3px;background:var(--ac);transition:width .3s;width:0%}
+/* Progress */
+#progWrap{display:none;padding:0 16px 6px}#progWrap.show{display:block}
+.prog-h{display:flex;justify-content:space-between;margin-bottom:4px}.prog-h span{font-size:11px;color:var(--fg3);font-weight:500}
+.prog-t{height:5px;border-radius:10px;background:var(--bg3);overflow:hidden}
+.prog-f{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .3s;width:0%;box-shadow:0 0 8px var(--ac-glow)}
 
-.modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;justify-content:center;align-items:center}.modal-mask.show{display:flex}
-.modal{background:var(--bg2);border-radius:12px;padding:16px;width:500px;max-height:80vh;display:flex;flex-direction:column;gap:10px}
-.modal h3{font-size:14px;color:var(--fg);margin:0}
-.modal .sc{padding:10px;border-radius:8px;background:var(--bg);cursor:pointer;transition:.15s}
-.modal .sc:hover{background:var(--bg3)}
-.modal .sc .sl{font-size:12px;font-weight:600;color:var(--ac);margin-bottom:2px}
-.modal .sc .sd{font-size:11px;color:var(--fg2);margin-bottom:4px}
-.modal .sc .ss{font-size:10px;font-family:'Cascadia Code','Fira Code',monospace;color:var(--fg2);white-space:pre-wrap;word-break:break-all;max-height:60px;overflow:hidden}
-.modal .sc.copied{outline:2px solid var(--ok)}
-#logBox{height:110px;background:var(--bg2);overflow-y:auto;font-size:11px;font-family:'Cascadia Code','Fira Code',monospace;padding:6px 12px;margin:0 12px 8px;border-radius:8px;display:flex;flex-direction:column;gap:0}
-.ll{color:var(--fg2);line-height:1.6}.ll.ok{color:var(--ok)}.ll.er{color:var(--err)}.ll.wn{color:var(--warn)}.ll.in{color:var(--ac)}
+/* Log */
+#logBox{height:100px;background:var(--bg2);border-top:1px solid var(--bg3);overflow-y:auto;font-size:11px;font-family:'Cascadia Code','Fira Code','SF Mono',monospace;padding:8px 14px;display:flex;flex-direction:column;gap:1px}
+.ll{color:var(--fg3);line-height:1.7;padding:1px 0}
+.ll.ok{color:var(--ok)}.ll.er{color:var(--err)}.ll.wn{color:var(--warn)}.ll.in{color:var(--ac2)}
+
+/* Modal */
+.modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;justify-content:center;align-items:center}
+.modal-mask.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:20px;width:520px;max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg)}
+.modal h3{font-size:14px;color:var(--fg);margin:0;font-weight:600}
+.modal .sc{padding:12px;border-radius:var(--radius);background:var(--bg);border:1px solid var(--bg3);cursor:pointer;transition:var(--transition)}
+.modal .sc:hover{border-color:var(--ac);background:var(--ac-glow)}
+.modal .sc .sl{font-size:12px;font-weight:600;color:var(--ac2);margin-bottom:3px}
+.modal .sc .sd{font-size:11px;color:var(--fg2);margin-bottom:6px;line-height:1.4}
+.modal .sc .ss{font-size:10px;font-family:'Cascadia Code','Fira Code',monospace;color:var(--fg3);white-space:pre-wrap;word-break:break-all;max-height:50px;overflow:hidden;line-height:1.5}
+.modal .sc.copied{border-color:var(--ok);box-shadow:0 0 0 2px rgba(34,197,94,.2)}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.vid{animation:fadeIn .2s ease}
 </style>
 </head>
 <body>
 
-<div class="row" style="padding-bottom:0">
-  <h1 style="font-size:16px;font-weight:700;color:var(--ac);white-space:nowrap">FetchVid</h1>
-  <input id="urlInput" type="text" placeholder="Paste URL profile / share link / reel URL...">
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">F</div>
+    <div>
+      <div class="logo-text">FetchVid</div>
+    </div>
+  </div>
+  <div class="url-box">
+    <input id="urlInput" type="text" placeholder="Paste URL profile, share link, atau reel URL...">
+  </div>
   <button id="btnExtract" class="btn btn-p">Ambil Daftar Video</button>
   <button id="btnScripts" class="btn btn-s">Scripts</button>
 </div>
 
-<div class="row" style="padding-top:0;padding-bottom:4px">
-  <span style="font-size:11px;color:var(--fg2);white-space:nowrap">Simpan ke:</span>
-  <input id="folderPath" type="text" style="flex:1;font-size:11px;color:var(--fg2);background:var(--bg);border-color:var(--bg)" readonly>
-  <button id="btnFolder" class="ibtn" title="Ganti folder">📂 Browse</button>
-  <button id="btnCookies" class="ibtn" title="Cookies file">🍪 Cookies</button>
+<div class="settings">
+  <span class="settings-label">Simpan ke</span>
+  <input id="folderPath" class="folder-input" type="text" readonly>
+  <button id="btnFolder" class="ibtn">Browse</button>
+  <button id="btnCookies" class="ibtn">Cookies</button>
 </div>
 
 <div class="tabs">
-  <button class="tab on" data-p="facebook">FB</button>
-  <button class="tab" data-p="instagram">IG</button>
-  <button class="tab" data-p="tiktok">TT</button>
+  <button class="tab on" data-p="facebook">Facebook</button>
+  <button class="tab" data-p="instagram">Instagram</button>
+  <button class="tab" data-p="tiktok">TikTok</button>
 </div>
 
 <div class="panel">
   <div class="panel-h">
-    <span>Daftar Video: <strong id="cnt">0</strong></span>
+    <span class="title">Video: <strong id="cnt">0</strong></span>
     <div class="acts">
-      <button id="btnAll" class="btn-l">Select All</button>
-      <button id="btnNone" class="btn-l btn-m">Deselect</button>
-      <button id="btnPaste" class="btn-l">Paste URLs</button>
-      <button id="btnClr" class="btn-l btn-d">Clear</button>
+      <button id="btnAll" class="act-btn">Select All</button>
+      <button id="btnNone" class="act-btn">Deselect</button>
+      <button id="btnPaste" class="act-btn">Paste URLs</button>
+      <button id="btnClr" class="act-btn danger">Clear</button>
     </div>
   </div>
-  <div id="vlist"><div class="empty">Belum ada video. Paste URL atau klik "Ambil Daftar Video"</div></div>
+  <div id="vlist"><div class="empty">Belum ada video.<br>Paste URL atau klik "Ambil Daftar Video"</div></div>
 </div>
 
 <div class="dlbar">
-  <label>Download bareng:</label>
+  <label>Concurrent:</label>
   <input id="conc" type="number" value="3" min="1" max="10">
-  <label>reel sekaligus</label>
-  <button id="btnDL" disabled>DOWNLOAD VIDEO</button>
+  <label>video sekaligus</label>
+  <button id="btnDL" disabled>DOWNLOAD</button>
 </div>
 
 <div id="progWrap">
@@ -106,11 +165,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   <div class="prog-t"><div id="pBar" class="prog-f"></div></div>
 </div>
 
-<div id="logBox"><div class="ll">FetchVid siap. Masukkan URL profile untuk memulai.</div></div>
+<div id="logBox"><div class="ll in">FetchVid siap. Masukkan URL profile untuk memulai.</div></div>
 
 <div id="scriptModal" class="modal-mask" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal">
-    <h3>Scripts - Klik untuk copy</h3>
+    <h3>Console Scripts</h3>
     <div id="scriptList"></div>
     <button class="btn btn-s" style="align-self:flex-end" onclick="document.getElementById('scriptModal').classList.remove('show')">Tutup</button>
   </div>
@@ -144,7 +203,7 @@ function render(arr){
     var bg=document.createElement('span');bg.className='badge';
     var src=v.Source||v.source||'';
     var C={facebook:'#1877f2',instagram:'#e4405f',tiktok:'#00f2ea'};
-    bg.style.background=(C[src]||'#555')+'33';bg.style.color=C[src]||'#aaa';
+    bg.style.background=(C[src]||'#555')+'22';bg.style.color=C[src]||'#aaa';
     bg.textContent=(src||'?').slice(0,2).toUpperCase();
     d.appendChild(cb);d.appendChild(lb);d.appendChild(bg);vlist.appendChild(d);
   });
@@ -186,7 +245,7 @@ function detect(u){
 btnSc.onclick=function(){
   go('GetScripts').then(function(s){
     var sl=$('#scriptList');sl.innerHTML='';
-    if(!s||!s.length){sl.innerHTML='<div style="color:var(--fg2);font-size:12px">Tidak ada script.</div>';document.getElementById('scriptModal').classList.add('show');return}
+    if(!s||!s.length){sl.innerHTML='<div style="color:var(--fg3);font-size:12px">Tidak ada script.</div>';document.getElementById('scriptModal').classList.add('show');return}
     s.forEach(function(x,i){
       var d=document.createElement('div');d.className='sc';
       d.innerHTML='<div class="sl">['+x.label+']</div><div class="sd">'+x.desc+'</div><div class="ss">'+x.script+'</div>';
@@ -231,7 +290,7 @@ btnDL.onclick=function(){
   }).catch(function(e){L('Error: '+e,'er');resetDl()});
 };
 
-function resetDl(){running=false;btnDL.textContent='DOWNLOAD VIDEO';btnDL.disabled=false}
+function resetDl(){running=false;btnDL.textContent='DOWNLOAD';btnDL.disabled=false}
 
 evOn('download-progress',function(p){
   pB.style.width=(p.percent||0)+'%';
@@ -254,7 +313,6 @@ btnF.onclick=function(){
 };
 btnK.onclick=function(){go('SelectCookiesFile').then(function(f){if(f)L('Cookies: '+f,'in')}).catch(function(e){L('Error: '+e,'er')})};
 
-// Load settings on startup
 go('GetSettings').then(function(s){
   if(s&&s.OutputDir)folderI.value=s.OutputDir;
 }).catch(function(){});
