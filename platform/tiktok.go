@@ -67,10 +67,7 @@ func (t *TikTok) ExtractChannelIDFromVideo(videoURL, cookies string) (string, er
 	args = append(args, videoURL)
 
 	cmd := exec.Command(ytdlpPath, args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("failed to get channel_id: %s", err.Error())
-	}
+	out, _ := cmd.CombinedOutput()
 
 	output := string(out)
 	re := regexp.MustCompile(`"channel_id"\s*:\s*"([^"]+)"`)
@@ -79,7 +76,7 @@ func (t *TikTok) ExtractChannelIDFromVideo(videoURL, cookies string) (string, er
 		return matches[1], nil
 	}
 
-	return "", fmt.Errorf("channel_id not found")
+	return "", fmt.Errorf("channel_id not found in video data")
 }
 
 func (t *TikTok) tryExtract(ytdlpPath, rawurl, cookies string, flatPlaylist bool) ([]VideoInfo, error) {
