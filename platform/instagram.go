@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -27,9 +28,9 @@ func (i *Instagram) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, err
 	args = append(args, rawurl)
 
 	cmd := exec.Command(ytdlpPath, args...)
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("yt-dlp error: %s\n%s", err.Error(), truncateStr(string(out), 300))
 	}
 
 	var entries []VideoInfo
