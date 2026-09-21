@@ -12,6 +12,7 @@
   --fg:#fafafa;--fg2:#a1a1aa;--fg3:#71717a;
   --ac:#8b5cf6;--ac2:#a78bfa;--ac3:#7c3aed;--ac-glow:rgba(139,92,246,.15);
   --ok:#22c55e;--err:#ef4444;--warn:#eab308;
+  --fb:#1877f2;--ig:#e4405f;--tt:#00f2ea;
   --radius:10px;--radius-sm:6px;
   --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
   --shadow-lg:0 10px 30px rgba(0,0,0,.4);
@@ -24,12 +25,10 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:10px}
 ::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
 
-/* Header */
 .header{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
 .logo{display:flex;align-items:center;gap:8px;white-space:nowrap}
 .logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--ac),var(--ac3));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;box-shadow:0 0 12px var(--ac-glow)}
 .logo-text{font-size:15px;font-weight:700;color:var(--fg);letter-spacing:-.3px}
-.logo-ver{font-size:10px;color:var(--fg3);font-weight:500}
 
 .url-box{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:0 12px;transition:var(--transition)}
 .url-box:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-glow)}
@@ -41,7 +40,6 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .btn-p{background:var(--ac);color:#fff}.btn-p:hover{background:var(--ac2);box-shadow:0 0 16px var(--ac-glow)}.btn-p:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .btn-s{background:var(--bg3);color:var(--fg2)}.btn-s:hover{background:var(--bg4);color:var(--fg)}
 
-/* Settings row */
 .settings{display:flex;align-items:center;gap:8px;padding:0 16px 10px}
 .settings-label{font-size:11px;color:var(--fg3);font-weight:500;white-space:nowrap}
 .folder-input{flex:1;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:6px 10px;color:var(--fg2);font-size:11px;font-family:inherit;outline:none}
@@ -52,13 +50,15 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .cookies-hint .dot{width:6px;height:6px;border-radius:50%;background:var(--fg3)}
 .cookies-hint .dot.on{background:var(--ok)}
 
-/* Tabs */
 .tabs{display:flex;gap:6px;padding:0 16px 10px}
-.tab{padding:6px 20px;border-radius:20px;border:1px solid var(--bg3);font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--fg3);transition:var(--transition);font-family:inherit;letter-spacing:.3px}
+.tab{padding:6px 16px;border-radius:20px;border:1px solid var(--bg3);font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--fg3);transition:var(--transition);font-family:inherit;letter-spacing:.3px;display:flex;align-items:center;gap:5px}
 .tab:hover{background:var(--bg3);color:var(--fg2)}
-.tab.on{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 0 12px var(--ac-glow)}
+.tab.on{color:#fff;border-color:transparent}
+.tab.on[data-p="facebook"]{background:var(--fb);box-shadow:0 0 12px rgba(24,119,242,.3)}
+.tab.on[data-p="instagram"]{background:var(--ig);box-shadow:0 0 12px rgba(228,64,95,.3)}
+.tab.on[data-p="tiktok"]{background:var(--tt);color:#000;box-shadow:0 0 12px rgba(0,242,234,.3)}
+.tab .count{background:rgba(255,255,255,.2);padding:1px 6px;border-radius:10px;font-size:9px;min-width:18px;text-align:center}
 
-/* Panel */
 .panel{flex:1;display:flex;flex-direction:column;margin:0 12px;border-radius:var(--radius);background:var(--bg2);border:1px solid var(--bg3);overflow:hidden;min-height:0}
 .panel-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bg3)}
 .panel-h .title{font-size:12px;color:var(--fg2);font-weight:500}
@@ -77,7 +77,6 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 .empty{text-align:center;color:var(--fg3);font-size:12px;padding:50px 20px;line-height:1.8}
 
-/* Download bar */
 .dlbar{display:flex;align-items:center;gap:10px;padding:10px 16px}
 .dlbar label{font-size:11px;color:var(--fg3);font-weight:500}
 .dlbar input[type=number]{width:46px;padding:5px;border-radius:var(--radius-sm);background:var(--bg2);border:1px solid var(--bg3);color:var(--fg);font-size:12px;text-align:center;outline:none;font-family:inherit;transition:var(--transition)}
@@ -87,18 +86,15 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 #btnDL:active{transform:translateY(0) scale(.98)}
 #btnDL:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
 
-/* Progress */
 #progWrap{display:none;padding:0 16px 6px}#progWrap.show{display:block}
 .prog-h{display:flex;justify-content:space-between;margin-bottom:4px}.prog-h span{font-size:11px;color:var(--fg3);font-weight:500}
 .prog-t{height:5px;border-radius:10px;background:var(--bg3);overflow:hidden}
 .prog-f{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .3s;width:0%;box-shadow:0 0 8px var(--ac-glow)}
 
-/* Log */
 #logBox{height:100px;background:var(--bg2);border-top:1px solid var(--bg3);overflow-y:auto;font-size:11px;font-family:'Cascadia Code','Fira Code','SF Mono',monospace;padding:8px 14px;display:flex;flex-direction:column;gap:1px}
 .ll{color:var(--fg3);line-height:1.7;padding:1px 0}
 .ll.ok{color:var(--ok)}.ll.er{color:var(--err)}.ll.wn{color:var(--warn)}.ll.in{color:var(--ac2)}
 
-/* Modal */
 .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;justify-content:center;align-items:center}
 .modal-mask.show{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:20px;width:520px;max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg);overflow-y:auto}
@@ -110,7 +106,6 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .modal .sc .ss{font-size:10px;font-family:'Cascadia Code','Fira Code',monospace;color:var(--fg3);white-space:pre-wrap;word-break:break-all;max-height:50px;overflow:hidden;line-height:1.5}
 .modal .sc.copied{border-color:var(--ok);box-shadow:0 0 0 2px rgba(34,197,94,.2)}
 
-/* Cookies guide */
 .cookies-guide{display:flex;flex-direction:column;gap:10px}
 .cookies-step{display:flex;gap:10px;align-items:flex-start}
 .cookies-step .num{min-width:22px;height:22px;border-radius:50%;background:var(--ac);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -119,7 +114,6 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .cookies-step .text a:hover{text-decoration:underline}
 .cookies-step .text code{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--fg);font-family:'Cascadia Code','Fira Code',monospace}
 
-/* Animations */
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .vid{animation:fadeIn .2s ease}
 </style>
@@ -150,9 +144,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 </div>
 
 <div class="tabs">
-  <button class="tab on" data-p="facebook">Facebook</button>
-  <button class="tab" data-p="instagram">Instagram</button>
-  <button class="tab" data-p="tiktok">TikTok</button>
+  <button class="tab on" data-p="facebook"><span>Facebook</span><span class="count" id="cntFB">0</span></button>
+  <button class="tab" data-p="instagram"><span>Instagram</span><span class="count" id="cntIG">0</span></button>
+  <button class="tab" data-p="tiktok"><span>TikTok</span><span class="count" id="cntTT">0</span></button>
 </div>
 
 <div class="panel">
@@ -252,27 +246,78 @@ var urlI=$('#urlInput'),vlist=$('#vlist'),cnt=$('#cnt'),conc=$('#conc'),
     btnP=$('#btnPaste'),btnC=$('#btnClr'),btnA=$('#btnAll'),btnN=$('#btnNone'),
     btnF=$('#btnFolder'),btnK=$('#btnCookies'),folderI=$('#folderPath'),
     tabs=document.querySelectorAll('.tab'),
-    logB=$('#logBox'),pW=$('#progWrap'),pB=$('#pBar'),pT=$('#pTxt'),pP=$('#pPct');
+    logB=$('#logBox'),pW=$('#progWrap'),pB=$('#pBar'),pT=$('#pTxt'),pP=$('#pPct'),
+    cntFB=$('#cntFB'),cntIG=$('#cntIG'),cntTT=$('#cntTT');
 
-var vids=[],running=false;
+var vids=[],running=false,activeTab='facebook';
+
+var platformTips={
+  facebook:'Facebook: Paste URL profile/reel/fanpage. Contoh:\n  facebook.com/username\n  facebook.com/username/reels\n  fb.watch/xxx',
+  instagram:'Instagram: Paste URL profile/reel. Contoh:\n  instagram.com/username\n  instagram.com/username/reels\n  instagram.com/reel/xxx',
+  tiktok:'TikTok: Paste URL profile/video. Contoh:\n  tiktok.com/@username\n  tiktok.com/@username/video/xxx\n  vt.tiktok.com/xxx'
+};
 
 function L(m,t){var d=document.createElement('div');d.className='ll'+(t?' '+t:'');d.textContent=m;logB.appendChild(d);logB.scrollTop=99999}
 function go(fn,arg){if(arg===undefined||arg===null)return window['go']['app']['App'][fn]();return window['go']['app']['App'][fn](arg)}
 function evOn(e,cb){window.runtime.EventsOn(e,cb)}
 
-tabs.forEach(function(t){t.onclick=function(){tabs.forEach(function(x){x.classList.remove('on')});t.classList.add('on')}});
+function detectPlatform(u){
+  if(/facebook\.com|fb\.com|fb\.watch/i.test(u))return'facebook';
+  if(/instagram\.com|instagr\.am/i.test(u))return'instagram';
+  if(/tiktok\.com|vm\.tiktok/i.test(u))return'tiktok';
+  return null;
+}
+
+function setActiveTab(p){
+  if(!p)return;
+  activeTab=p;
+  tabs.forEach(function(t){
+    t.classList.remove('on');
+    if(t.dataset.p===p)t.classList.add('on');
+  });
+}
+
+function updateCounts(){
+  var fb=0,ig=0,tt=0;
+  vids.forEach(function(v){
+    var s=(v.Source||v.source||'').toLowerCase();
+    if(s==='facebook')fb++;
+    else if(s==='instagram')ig++;
+    else if(s==='tiktok')tt++;
+  });
+  cntFB.textContent=fb;
+  cntIG.textContent=ig;
+  cntTT.textContent=tt;
+}
+
+tabs.forEach(function(t){
+  t.onclick=function(){
+    setActiveTab(t.dataset.p);
+    L(platformTips[t.dataset.p],'in');
+  }
+});
+
+urlI.addEventListener('input',function(){
+  var p=detectPlatform(urlI.value);
+  if(p)setActiveTab(p);
+});
+
+urlI.addEventListener('keydown',function(e){
+  if(e.key==='Enter')btnEx.click();
+});
 
 function render(arr){
   vids=arr;vlist.innerHTML='';cnt.textContent=arr.length;
+  updateCounts();
   if(!arr.length){vlist.innerHTML='<div class="empty">Belum ada video.</div>';btnDL.disabled=true;return}
   arr.forEach(function(v,i){
     var d=document.createElement('div');d.className='vid';d.dataset.i=i;
     var cb=document.createElement('input');cb.type='checkbox';cb.checked=true;
     var lb=document.createElement('span');lb.className='t';lb.textContent=(v.Title||v.title||v.URL||v.url||'').slice(0,80);
     var bg=document.createElement('span');bg.className='badge';
-    var src=v.Source||v.source||'';
-    var C={facebook:'#1877f2',instagram:'#e4405f',tiktok:'#00f2ea'};
-    bg.style.background=(C[src]||'#555')+'22';bg.style.color=C[src]||'#aaa';
+    var src=(v.Source||v.source||'').toLowerCase();
+    var C={facebook:'var(--fb)',instagram:'var(--ig)',tiktok:'var(--tt)'};
+    bg.style.background=(C[src]||'var(--bg3)')+'22';bg.style.color=C[src]||'var(--fg3)';
     bg.textContent=(src||'?').slice(0,2).toUpperCase();
     d.appendChild(cb);d.appendChild(lb);d.appendChild(bg);vlist.appendChild(d);
   });
@@ -298,18 +343,11 @@ btnP.onclick=function(){
   var lines=t.split('\n').map(function(s){return s.trim()}).filter(function(s){return s&&!s.startsWith('#')});
   var arr=[];
   lines.forEach(function(u){
-    var src=detect(u);
-    if(src!=='unknown')arr.push({URL:u,Title:u.split('/').pop()||u.slice(0,50),Source:src});
+    var src=detectPlatform(u)||activeTab;
+    arr.push({URL:u,Title:u.split('/').pop()||u.slice(0,50),Source:src});
   });
   if(arr.length){render(vids.concat(arr));L('Ditambahkan '+arr.length+' URL','ok')}
 };
-
-function detect(u){
-  if(/facebook\.com|fb\.com|fb\.watch/i.test(u))return'facebook';
-  if(/instagram\.com|instagr\.am/i.test(u))return'instagram';
-  if(/tiktok\.com|vm\.tiktok/i.test(u))return'tiktok';
-  return'unknown';
-}
 
 btnSc.onclick=function(){
   go('GetScripts').then(function(s){
@@ -333,7 +371,8 @@ btnSc.onclick=function(){
 btnEx.onclick=function(){
   var url=urlI.value.trim();
   if(!url){L('Masukkan URL profile!','er');return}
-  currentProfileUrl=url;
+  var p=detectPlatform(url);
+  if(p)setActiveTab(p);
   L('Analisa: '+url,'in');
   btnEx.disabled=true;btnEx.textContent='Loading...';
   go('ExtractURLs',url).then(function(r){
@@ -397,13 +436,11 @@ btnF.onclick=function(){
   }).catch(function(e){L('Error: '+e,'er')});
 };
 
-// Cookies button - show guide modal
 btnK.onclick=function(){
   document.getElementById('cookiesModal').classList.add('show');
   updateCookiesStatus();
 };
 
-// Load cookies from inside modal
 var btnLoadCookies=$('#btnLoadCookies');
 if(btnLoadCookies){
   btnLoadCookies.onclick=function(){
