@@ -264,7 +264,15 @@ var platformTips={
   tiktok:'TikTok: Paste URL profile/video. Contoh:\n  tiktok.com/@username\n  tiktok.com/@username/video/xxx\n  vt.tiktok.com/xxx'
 };
 
-function L(m,t){var d=document.createElement('div');d.className='ll'+(t?' '+t:'');d.textContent=m;logB.appendChild(d);logB.scrollTop=99999}
+function L(m,t,btn){
+  var d=document.createElement('div');d.className='ll'+(t?' '+t:'');d.textContent=m;
+  if(btn){
+    var b=document.createElement('button');
+    b.textContent=btn.label;b.className='btn btn-p';b.style.cssText='margin-left:8px;padding:2px 10px;font-size:10px;vertical-align:middle';
+    b.onclick=btn.action;d.appendChild(b);
+  }
+  logB.appendChild(d);logB.scrollTop=99999
+}
 function go(fn,arg){if(arg===undefined||arg===null)return window['go']['app']['App'][fn]();return window['go']['app']['App'][fn](arg)}
 function evOn(e,cb){window.runtime.EventsOn(e,cb)}
 
@@ -383,7 +391,17 @@ btnEx.onclick=function(){
   L('Analisa: '+url,'in');
   btnEx.disabled=true;btnEx.textContent='Loading...';
   go('ExtractURLs',url).then(function(r){
-    if(!r.success){L(r.message,'er');return}
+    if(!r.success){
+      if(r.message&&r.message.indexOf('secondary user ID')!==-1){
+        L('Akun ini butuh URL video untuk extract semua video.','wn',{
+          label:'Paste Video URL',
+          action:function(){document.getElementById('videoUrlModal').classList.add('show')}
+        });
+      }else{
+        L(r.message,'er');
+      }
+      return;
+    }
     var d=r.data||[];
     if(!d.length){L(r.message||'Tidak ada video','wn');return}
     render(d);L('Ditemukan '+d.length+' video','ok');
