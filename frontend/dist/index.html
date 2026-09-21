@@ -162,6 +162,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
       <button id="btnAll" class="act-btn">Select All</button>
       <button id="btnNone" class="act-btn">Deselect</button>
       <button id="btnPaste" class="act-btn">Paste URLs</button>
+      <button id="btnClrLog" class="act-btn">Clear Log</button>
       <button id="btnClr" class="act-btn danger">Clear</button>
     </div>
   </div>
@@ -350,7 +351,8 @@ function sel(){
 
 btnA.onclick=function(){vlist.querySelectorAll('input').forEach(function(c){c.checked=true})};
 btnN.onclick=function(){vlist.querySelectorAll('input').forEach(function(c){c.checked=false})};
-btnC.onclick=function(){render([]);L('List dibersihkan','wn')};
+btnC.onclick=function(){render([]);L('List video dibersihkan','wn')};
+$('#btnClrLog').onclick=function(){logB.innerHTML='';L('Log dibersihkan','in')};
 
 btnP.onclick=function(){
   var t=prompt('Paste URL video (1 per baris):');
