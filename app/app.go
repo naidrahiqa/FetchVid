@@ -310,6 +310,47 @@ func extractTitleFromURL(rawurl string) string {
 	return "Video"
 }
 
+// ExtractTikTokFromVideo extracts channel_id from a single video URL
+// and returns all videos from that user/profile
+func (a *App) ExtractTikTokFromVideo(videoURL string) Response {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	p := platform.Detect(videoURL)
+	if p == nil || p.Name() != "tiktok" {
+		return Response{Success: false, Message: "URL bukan TikTok video"}
+	}
+
+	tiktok, ok := p.(*platform.TikTok)
+	if !ok {
+		return Response{Success: false, Message: "Platform error"}
+	}
+
+	// Extract channel_id from single video
+	channelID, err := tiktok.ExtractChannelIDFromVideo(videoURL, a.settings.CookiesFile)
+	if err != nil || channelID == "" {
+		return Response{Success: false, Message: "Gagal extract channel_id: " + err.Error()}
+	}
+
+	// Use channel_id to get all videos
+	profileURL := "tiktokuser:" + channelID
+	entries, err := tiktok.ExtractURLs(profileURL, a.settings.CookiesFile)
+	if err != nil {
+		return Response{Success: false, Message: "Gagal ambil video dari profile: " + err.Error()}
+	}
+
+	if len(entries) == 0 {
+		return Response{Success: false, Message: "Tidak ada video ditemukan"}
+	}
+
+	info := make([]VideoInfo, len(entries))
+	for i, e := range entries {
+		info[i] = VideoInfo{URL: e.URL, Title: e.Title, Source: e.Source}
+	}
+
+	return Response{Success: true, Message: fmt.Sprintf("OK %d video", len(entries)), Data: info}
+}
+
 // resolveViaYtdlp uses yt-dlp to resolve Facebook share URLs
 func (a *App) resolveViaYtdlp(rawurl string) string {
 	if a.ytdlp == nil {

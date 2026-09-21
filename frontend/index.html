@@ -190,6 +190,26 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   </div>
 </div>
 
+<div id="videoUrlModal" class="modal-mask" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <h3>Video URL Diperlukan</h3>
+    <div style="font-size:12px;color:var(--fg2);line-height:1.6;margin-bottom:4px">
+      Akun TikTok ini memiliki <strong style="color:var(--fg)">embedding disabled</strong>. 
+      Untuk mengambil semua video, paste <strong style="color:var(--fg)">1 URL video</strong> dari akun ini.
+    </div>
+    <div style="font-size:11px;color:var(--fg3);margin-bottom:8px">
+      Contoh: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-size:10px">https://www.tiktok.com/@username/video/1234567890</code>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input id="videoUrlInput" type="text" placeholder="Paste URL video..." style="flex:1;padding:8px 12px;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--bg3);color:var(--fg);font-size:12px;outline:none;font-family:inherit">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+      <button class="btn btn-s" onclick="document.getElementById('videoUrlModal').classList.remove('show')">Batal</button>
+      <button id="btnSubmitVideoUrl" class="btn btn-p">Ambil Semua Video</button>
+    </div>
+  </div>
+</div>
+
 <div id="cookiesModal" class="modal-mask" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal">
     <h3>Setup Cookies</h3>
@@ -310,12 +330,38 @@ btnSc.onclick=function(){
   }).catch(function(e){L('Error: '+e,'er')});
 };
 
+var currentProfileUrl='';
+
 btnEx.onclick=function(){
   var url=urlI.value.trim();
   if(!url){L('Masukkan URL profile!','er');return}
+  currentProfileUrl=url;
   L('Analisa: '+url,'in');
   btnEx.disabled=true;btnEx.textContent='Loading...';
   go('ExtractURLs',url).then(function(r){
+    if(!r.success){
+      // Check if this is "embedding disabled" error for TikTok
+      if(r.message && r.message.indexOf('embedding disabled')!==-1 && /tiktok\.com/i.test(url)){
+        L('Embedding disabled - perlu URL video','wn');
+        document.getElementById('videoUrlModal').classList.add('show');
+        return;
+      }
+      L(r.message,'er');return
+    }
+    var d=r.data||[];
+    if(!d.length){L(r.message||'Tidak ada video','wn');return}
+    render(d);L('Ditemukan '+d.length+' video','ok');
+  }).catch(function(e){L('Error: '+e,'er')})
+  .finally(function(){btnEx.disabled=false;btnEx.textContent='Ambil Daftar Video'});
+};
+
+$('#btnSubmitVideoUrl').onclick=function(){
+  var videoUrl=$('#videoUrlInput').value.trim();
+  if(!videoUrl){L('Masukkan URL video!','er');return}
+  document.getElementById('videoUrlModal').classList.remove('show');
+  L('Extract dari video: '+videoUrl,'in');
+  btnEx.disabled=true;btnEx.textContent='Loading...';
+  go('ExtractTikTokFromVideo',videoUrl).then(function(r){
     if(!r.success){L(r.message,'er');return}
     var d=r.data||[];
     if(!d.length){L(r.message||'Tidak ada video','wn');return}

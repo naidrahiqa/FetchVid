@@ -31,18 +31,6 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 		return entries, nil
 	}
 
-	// Try 3: If profile extraction failed (embedding disabled), extract channel_id from page
-	if err1 != nil && strings.Contains(err1.Error(), "embedding disabled") && isTikTokProfile(rawurl) {
-		channelID, err3 := t.extractChannelID(ytdlpPath, rawurl, cookies)
-		if err3 == nil && channelID != "" {
-			profileURL := fmt.Sprintf("tiktokuser:%s", channelID)
-			entries, err4 := t.tryExtract(ytdlpPath, profileURL, cookies, true)
-			if err4 == nil && len(entries) > 0 {
-				return entries, nil
-			}
-		}
-	}
-
 	// All failed - return detailed error
 	errMsg := ""
 	if err1 != nil && strings.Contains(err1.Error(), "private") {
@@ -64,31 +52,19 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 	return nil, fmt.Errorf(errMsg)
 }
 
-func isTikTokProfile(rawurl string) bool {
-	return strings.Contains(rawurl, "/@") && !strings.Contains(rawurl, "/video/")
-}
+// ExtractChannelIDFromVideo extracts channel_id from a single TikTok video URL
+func (t *TikTok) ExtractChannelIDFromVideo(videoURL, cookies string) (string, error) {
+	ytdlpPath := findYtdlpLocate()
 
-func (t *TikTok) extractChannelID(ytdlpPath, rawurl, cookies string) (string, error) {
-	// Extract username from URL
-	parts := strings.Split(rawurl, "/@")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid tiktok profile URL")
-	}
-	username := strings.Split(parts[1], "/")[0]
-	username = strings.Split(username, "?")[0]
-
-	// Try downloading single video from user to get channel_id
-	// Use yt-dlp with cookies to get user info
 	args := []string{
 		"--dump-json",
 		"--no-warnings", "--ignore-errors",
 		"--no-check-certificates", "--geo-bypass",
-		"--playlist-items", "1",
 	}
 	if cookies != "" {
 		args = append(args, "--cookies", cookies)
 	}
-	args = append(args, rawurl)
+	args = append(args, videoURL)
 
 	cmd := exec.Command(ytdlpPath, args...)
 	out, err := cmd.CombinedOutput()
@@ -96,7 +72,6 @@ func (t *TikTok) extractChannelID(ytdlpPath, rawurl, cookies string) (string, er
 		return "", fmt.Errorf("failed to get channel_id: %s", err.Error())
 	}
 
-	// Parse JSON output to find channel_id
 	output := string(out)
 	re := regexp.MustCompile(`"channel_id"\s*:\s*"([^"]+)"`)
 	matches := re.FindStringSubmatch(output)
@@ -104,14 +79,7 @@ func (t *TikTok) extractChannelID(ytdlpPath, rawurl, cookies string) (string, er
 		return matches[1], nil
 	}
 
-	// Try sec_uid pattern
-	re2 := regexp.MustCompile(`"sec_uid"\s*:\s*"([^"]+)"`)
-	matches2 := re2.FindStringSubmatch(output)
-	if len(matches2) >= 2 {
-		return matches2[1], nil
-	}
-
-	return "", fmt.Errorf("channel_id not found in output")
+	return "", fmt.Errorf("channel_id not found")
 }
 
 func (t *TikTok) tryExtract(ytdlpPath, rawurl, cookies string, flatPlaylist bool) ([]VideoInfo, error) {
