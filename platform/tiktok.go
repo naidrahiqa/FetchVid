@@ -31,14 +31,22 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 	}
 
 	// Both failed - return detailed error
-	errMsg := "yt-dlp gagal extract TikTok URLs"
-	if err1 != nil {
-		errMsg += "\n" + err1.Error()
+	errMsg := ""
+	if err1 != nil && strings.Contains(err1.Error(), "private") {
+		errMsg = "Akun ini private atau embedding disabled.\n"
+		errMsg += "Solusi:\n"
+		errMsg += "1. Pastikan cookies dari akun yang sudah FOLLOW akun ini\n"
+		errMsg += "2. Atau pakai Script dari FetchVid (login di browser dulu)\n"
+		errMsg += "3. Atau paste URL video manual"
+	} else if err1 != nil {
+		errMsg = err1.Error()
 	}
-	if err2 != nil {
-		errMsg += "\n" + err2.Error()
+	if errMsg == "" && err2 != nil {
+		errMsg = err2.Error()
 	}
-	errMsg += "\n\nTip: Login TikTok di browser, buka profile, pakai Script dari FetchVid, lalu Paste URLs."
+	if errMsg == "" {
+		errMsg = "Tidak ada video ditemukan"
+	}
 
 	return nil, fmt.Errorf(errMsg)
 }
