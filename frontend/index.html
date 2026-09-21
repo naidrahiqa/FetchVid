@@ -91,7 +91,13 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .prog-t{height:5px;border-radius:10px;background:var(--bg3);overflow:hidden}
 .prog-f{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .3s;width:0%;box-shadow:0 0 8px var(--ac-glow)}
 
-#logBox{height:100px;background:var(--bg2);border-top:1px solid var(--bg3);overflow-y:auto;font-size:11px;font-family:'Cascadia Code','Fira Code','SF Mono',monospace;padding:8px 14px;display:flex;flex-direction:column;gap:1px}
+/* Resizable log panel */
+.log-resizer{height:4px;background:var(--bg3);cursor:ns-resize;transition:background .15s;position:relative;flex-shrink:0}
+.log-resizer:hover,.log-resizer.active{background:var(--ac)}
+.log-resizer::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:2px;background:var(--fg3);border-radius:1px}
+.log-resizer:hover::after,.log-resizer.active::after{background:var(--fg)}
+
+#logBox{height:120px;min-height:40px;background:var(--bg2);overflow-y:auto;font-size:11px;font-family:'Cascadia Code','Fira Code','SF Mono',monospace;padding:8px 14px;display:flex;flex-direction:column;gap:1px;flex-shrink:0}
 .ll{color:var(--fg3);line-height:1.7;padding:1px 0}
 .ll.ok{color:var(--ok)}.ll.er{color:var(--err)}.ll.wn{color:var(--warn)}.ll.in{color:var(--ac2)}
 
@@ -174,6 +180,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   <div class="prog-t"><div id="pBar" class="prog-f"></div></div>
 </div>
 
+<div id="logResizer" class="log-resizer"></div>
 <div id="logBox"><div class="ll in">FetchVid siap. Masukkan URL profile untuk memulai.</div></div>
 
 <div id="scriptModal" class="modal-mask" onclick="if(event.target===this)this.classList.remove('show')">
@@ -496,6 +503,41 @@ go('GetSettings').then(function(s){
 }).catch(function(){});
 
 L('FetchVid siap. Masukkan URL profile untuk memulai.');
+
+// Resizable log panel
+(function(){
+  var resizer=document.getElementById('logResizer');
+  var logBox=document.getElementById('logBox');
+  var startY,startH;
+  
+  resizer.addEventListener('mousedown',function(e){
+    e.preventDefault();
+    startY=e.clientY;
+    startH=logBox.offsetHeight;
+    resizer.classList.add('active');
+    document.body.style.cursor='ns-resize';
+    document.body.style.userSelect='none';
+    
+    function onMove(e){
+      var diff=startY-e.clientY;
+      var newH=Math.max(40,Math.min(window.innerHeight-200,startH+diff));
+      logBox.style.height=newH+'px';
+    }
+    function onUp(){
+      resizer.classList.remove('active');
+      document.body.style.cursor='';
+      document.body.style.userSelect='';
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+  
+  resizer.addEventListener('dblclick',function(){
+    logBox.style.height='120px';
+  });
+})();
 })();
 </script>
 </body>
