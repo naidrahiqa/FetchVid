@@ -47,6 +47,10 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .folder-input{flex:1;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:6px 10px;color:var(--fg2);font-size:11px;font-family:inherit;outline:none}
 .ibtn{padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--bg3);background:var(--bg2);color:var(--fg2);font-size:12px;cursor:pointer;transition:var(--transition);font-family:inherit;display:inline-flex;align-items:center;gap:4px}
 .ibtn:hover{background:var(--bg3);color:var(--fg);border-color:var(--bg4)}
+.ibtn.active{border-color:var(--ok);color:var(--ok);background:rgba(34,197,94,.08)}
+.cookies-hint{font-size:10px;color:var(--fg3);display:flex;align-items:center;gap:4px}
+.cookies-hint .dot{width:6px;height:6px;border-radius:50%;background:var(--fg3)}
+.cookies-hint .dot.on{background:var(--ok)}
 
 /* Tabs */
 .tabs{display:flex;gap:6px;padding:0 16px 10px}
@@ -97,7 +101,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 /* Modal */
 .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;justify-content:center;align-items:center}
 .modal-mask.show{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:20px;width:520px;max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg)}
+.modal{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:20px;width:520px;max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg);overflow-y:auto}
 .modal h3{font-size:14px;color:var(--fg);margin:0;font-weight:600}
 .modal .sc{padding:12px;border-radius:var(--radius);background:var(--bg);border:1px solid var(--bg3);cursor:pointer;transition:var(--transition)}
 .modal .sc:hover{border-color:var(--ac);background:var(--ac-glow)}
@@ -105,6 +109,15 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .modal .sc .sd{font-size:11px;color:var(--fg2);margin-bottom:6px;line-height:1.4}
 .modal .sc .ss{font-size:10px;font-family:'Cascadia Code','Fira Code',monospace;color:var(--fg3);white-space:pre-wrap;word-break:break-all;max-height:50px;overflow:hidden;line-height:1.5}
 .modal .sc.copied{border-color:var(--ok);box-shadow:0 0 0 2px rgba(34,197,94,.2)}
+
+/* Cookies guide */
+.cookies-guide{display:flex;flex-direction:column;gap:10px}
+.cookies-step{display:flex;gap:10px;align-items:flex-start}
+.cookies-step .num{min-width:22px;height:22px;border-radius:50%;background:var(--ac);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cookies-step .text{font-size:12px;color:var(--fg2);line-height:1.5}
+.cookies-step .text a{color:var(--ac2);text-decoration:none}
+.cookies-step .text a:hover{text-decoration:underline}
+.cookies-step .text code{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--fg);font-family:'Cascadia Code','Fira Code',monospace}
 
 /* Animations */
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
@@ -131,7 +144,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   <span class="settings-label">Simpan ke</span>
   <input id="folderPath" class="folder-input" type="text" readonly>
   <button id="btnFolder" class="ibtn">Browse</button>
-  <button id="btnCookies" class="ibtn">Cookies</button>
+  <div style="width:1px;height:16px;background:var(--bg3)"></div>
+  <button id="btnCookies" class="ibtn" title="Load cookies untuk akses akun private/restricted">Cookies</button>
+  <span id="cookiesHint" class="cookies-hint"><span class="dot"></span> <span id="cookiesLabel">belum load</span></span>
 </div>
 
 <div class="tabs">
@@ -172,6 +187,40 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
     <h3>Console Scripts</h3>
     <div id="scriptList"></div>
     <button class="btn btn-s" style="align-self:flex-end" onclick="document.getElementById('scriptModal').classList.remove('show')">Tutup</button>
+  </div>
+</div>
+
+<div id="cookiesModal" class="modal-mask" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <h3>Setup Cookies</h3>
+    <div style="font-size:12px;color:var(--fg2);line-height:1.6;margin-bottom:4px">
+      Cookies diperlukan untuk download dari akun <strong style="color:var(--fg)">private</strong> atau <strong style="color:var(--fg)">restricted</strong>. Tanpa cookies, TikTok/FB/IG memblokir akses yt-dlp.
+    </div>
+    <div class="cookies-guide">
+      <div class="cookies-step">
+        <div class="num">1</div>
+        <div class="text">Install extension browser:<br><a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY</a> (Chrome) atau <a href="https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/" target="_blank">cookies.txt</a> (Firefox)</div>
+      </div>
+      <div class="cookies-step">
+        <div class="num">2</div>
+        <div class="text">Login ke <strong style="color:var(--fg)">TikTok / Facebook / Instagram</strong> di browser yang sama</div>
+      </div>
+      <div class="cookies-step">
+        <div class="num">3</div>
+        <div class="text">Buka profile yang ingin didownload, klik extension → <strong style="color:var(--fg)">Export</strong> → Save as <code>cookies.txt</code></div>
+      </div>
+      <div class="cookies-step">
+        <div class="num">4</div>
+        <div class="text">Klik tombol <strong style="color:var(--ac2)">Load Cookies</strong> di bawah, pilih file <code>cookies.txt</code> yang tadi</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <span id="cookiesModalStatus" style="font-size:11px;color:var(--fg3)"></span>
+      <div style="display:flex;gap:8px">
+        <button id="btnLoadCookies" class="btn btn-p">Load Cookies</button>
+        <button class="btn btn-s" onclick="document.getElementById('cookiesModal').classList.remove('show')">Tutup</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -311,10 +360,66 @@ btnF.onclick=function(){
     if(d){folderI.value=d;L('Folder: '+d,'in')}
   }).catch(function(e){L('Error: '+e,'er')});
 };
-btnK.onclick=function(){go('SelectCookiesFile').then(function(f){if(f)L('Cookies: '+f,'in')}).catch(function(e){L('Error: '+e,'er')})};
+
+// Cookies button - show guide modal
+btnK.onclick=function(){
+  document.getElementById('cookiesModal').classList.add('show');
+  updateCookiesStatus();
+};
+
+// Load cookies from inside modal
+var btnLoadCookies=$('#btnLoadCookies');
+if(btnLoadCookies){
+  btnLoadCookies.onclick=function(){
+    go('SelectCookiesFile').then(function(f){
+      if(f){
+        updateCookiesStatus(f);
+        L('Cookies loaded: '+f,'ok');
+        document.getElementById('cookiesModal').classList.remove('show');
+      }
+    }).catch(function(e){L('Error: '+e,'er')});
+  };
+}
+
+function updateCookiesStatus(filePath){
+  var st=$('#cookiesModalStatus');
+  var hint=$('#cookiesHint');
+  var dot=hint?hint.querySelector('.dot'):null;
+  var label=$('#cookiesLabel');
+  if(filePath){
+    var name=filePath.split('/').pop();
+    if(st)st.textContent='Active: '+name;
+    if(st)st.style.color='var(--ok)';
+    if(dot)dot.classList.add('on');
+    if(label)label.textContent=name;
+    var btn=$('#btnCookies');if(btn)btn.classList.add('active');
+  } else {
+    go('GetSettings').then(function(s){
+      if(s&&s.CookiesFile){
+        var name=s.CookiesFile.split('/').pop();
+        if(st)st.textContent='Active: '+name;
+        if(st)st.style.color='var(--ok)';
+        if(dot)dot.classList.add('on');
+        if(label)label.textContent=name;
+        var btn=$('#btnCookies');if(btn)btn.classList.add('active');
+      } else {
+        if(st)st.textContent='Belum load cookies';
+        if(st)st.style.color='var(--fg3)';
+      }
+    }).catch(function(){});
+  }
+}
 
 go('GetSettings').then(function(s){
   if(s&&s.OutputDir)folderI.value=s.OutputDir;
+  if(s&&s.CookiesFile){
+    var name=s.CookiesFile.split('/').pop();
+    var dot=$('#cookiesHint').querySelector('.dot');
+    var label=$('#cookiesLabel');
+    if(dot)dot.classList.add('on');
+    if(label)label.textContent=name;
+    var btn=$('#btnCookies');if(btn)btn.classList.add('active');
+  }
 }).catch(function(){});
 
 L('FetchVid siap. Masukkan URL profile untuk memulai.');
