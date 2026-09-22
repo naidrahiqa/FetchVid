@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/naidrahiqa/FetchVid/engine"
 	"github.com/naidrahiqa/FetchVid/platform"
@@ -322,7 +323,7 @@ func (a *App) ExtractTikTokFromVideo(videoURL string) Response {
 	}
 
 	cookiesFile := a.settings.CookiesFile
-	channelID, err := tiktok.ExtractChannelIDFromVideo(videoURL, cookiesFile)
+	vi, channelID, err := tiktok.ExtractVideoInfo(videoURL, cookiesFile)
 	if err != nil {
 		return Response{Success: false, Message: "Gagal extract channel_id: " + err.Error()}
 	}
@@ -330,20 +331,26 @@ func (a *App) ExtractTikTokFromVideo(videoURL string) Response {
 		return Response{Success: false, Message: "channel_id tidak ditemukan di video ini"}
 	}
 
+	info := []VideoInfo{{URL: vi.URL, Title: vi.Title, Source: vi.Source}}
+
+	// Wait briefly before hitting the profile to avoid 429
+	time.Sleep(2 * time.Second)
+
 	profileURL := "tiktokuser:" + channelID
 	entries, err := tiktok.ExtractURLs(profileURL, cookiesFile)
-	if err != nil {
-		return Response{Success: false, Message: "Gagal ambil video dari profile: " + err.Error()}
+	if err == nil {
+		seen := map[string]bool{vi.URL: true}
+		for _, e := range entries {
+			if !seen[e.URL] {
+				seen[e.URL] = true
+				info = append(info, VideoInfo{URL: e.URL, Title: e.Title, Source: e.Source})
+			}
+		}
 	}
 
-	if len(entries) == 0 {
+	if len(info) == 0 {
 		return Response{Success: false, Message: "Tidak ada video ditemukan"}
 	}
 
-	info := make([]VideoInfo, len(entries))
-	for i, e := range entries {
-		info[i] = VideoInfo{URL: e.URL, Title: e.Title, Source: e.Source}
-	}
-
-	return Response{Success: true, Message: fmt.Sprintf("OK %d video", len(entries)), Data: info}
+	return Response{Success: true, Message: fmt.Sprintf("OK %d video", len(info)), Data: info}
 }

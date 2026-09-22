@@ -37,9 +37,13 @@ func parseVideoEntry(line, source string) (VideoInfo, error) {
 	if u == "" {
 		return VideoInfo{}, fmt.Errorf("empty URL in entry")
 	}
+	title := raw.Title
+	if title == "" {
+		title = source + " video " + raw.ID
+	}
 	return VideoInfo{
 		URL:    u,
-		Title:  raw.Title,
+		Title:  title,
 		Source: source,
 	}, nil
 }
