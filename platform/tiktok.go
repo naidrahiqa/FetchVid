@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type TikTok struct{}
@@ -27,6 +28,9 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 		return entries, nil
 	}
 
+	// Wait before retry to avoid 429
+	time.Sleep(2 * time.Second)
+
 	// Try 2: without --flat-playlist (direct URL or single video)
 	entries, err2 := t.tryExtract(ytdlpPath, rawurl, cookies, false)
 	if err2 == nil && len(entries) > 0 {
@@ -48,6 +52,9 @@ func (t *TikTok) ExtractURLs(rawurl string, cookies string) ([]VideoInfo, error)
 	if strings.Contains(errMsg, "secondary user ID") {
 		errMsg += "\n\nTip: Jika ini akun dengan embedding disabled, klik 'Paste URLs' lalu paste 1 URL video dari akun tersebut."
 	}
+	if strings.Contains(errMsg, "429") {
+		errMsg += "\n\nTip: Terlalu banyak request. Tunggu 1-2 menit lalu coba lagi."
+	}
 
 	return nil, fmt.Errorf("%s", errMsg)
 }
@@ -65,12 +72,17 @@ func (t *TikTok) ExtractChannelIDFromVideo(videoURL, cookies string) (string, er
 	}
 	args = append(args, videoURL)
 
-	cmd := exec.Command(ytdlpPath, args...)
-	out, _ := cmd.CombinedOutput()
-
-	matches := reChannelID.FindStringSubmatch(string(out))
-	if len(matches) >= 2 {
-		return matches[1], nil
+	var out []byte
+	for retry := 0; retry < 3; retry++ {
+		cmd := exec.Command(ytdlpPath, args...)
+		out, _ = cmd.CombinedOutput()
+		matches := reChannelID.FindStringSubmatch(string(out))
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+		if retry < 2 {
+			time.Sleep(3 * time.Second)
+		}
 	}
 
 	return "", fmt.Errorf("channel_id not found in video data")
